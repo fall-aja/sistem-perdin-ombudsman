@@ -1,82 +1,109 @@
 <x-layouts.app>
-    <div x-data="perdinApp()" x-init="init()" x-cloak class="flex min-h-screen">
+    <div x-data="perdinApp()" x-init="init()" x-cloak class="min-h-screen">
 
         {{-- SIDEBAR --}}
-        <aside class="w-64 bg-slate-900 text-slate-200 flex-shrink-0 min-h-screen">
-            <div class="p-5 border-b border-slate-700">
-                <h1 class="font-bold text-lg leading-tight">Sistem PERDIN</h1>
-                <p class="text-xs text-slate-400">Ombudsman RI</p>
-                <a href="{{ route('template-settings.index') }}" class="mt-2 inline-block text-xs text-emerald-400 hover:underline">
-                    ⚙ Pengaturan Template
-                </a>
+        <aside class="fixed inset-y-0 left-0 z-30 flex w-64 flex-col overflow-hidden border-r border-slate-700 bg-slate-900 text-slate-200 shadow-xl shadow-slate-950/20">
+            <div class="border-b border-slate-700 p-5">
+                <div class="flex items-center gap-3">
+                    <img src="/images/ori_square.png" alt="Logo ORI" class="w-9 h-9 rounded-lg object-contain bg-white p-1">
+                    <div>
+                        <h1 class="font-bold text-lg leading-tight">Sistem PERDIN</h1>
+                        <p class="text-xs text-slate-400">Ombudsman RI</p>
+                    </div>
+                </div>
             </div>
 
-            <nav class="p-3 space-y-1">
+            <nav class="m-3 space-y-1 rounded-xl border border-slate-700/90 bg-slate-800/35 p-2 shadow-inner shadow-slate-950/20">
                 <template x-for="section in sections" :key="section.key">
                     <button
                         @click="activeSection = section.key"
-                        class="w-full text-left px-3 py-2 rounded-lg text-sm transition"
-                        :class="activeSection === section.key ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'"
-                        x-text="section.label"></button>
+                        class="flex w-full items-center justify-between rounded-lg border border-transparent px-3 py-2 text-left text-sm transition"
+                        :class="activeSection === section.key ? 'border-blue-400/60 bg-blue-600 text-white shadow-sm' : 'hover:border-slate-600 hover:bg-slate-800'">
+                        <span x-text="section.label"></span>
+                        <span class="w-3 h-3 rounded-full bg-red-500" x-show="sectionHasErrors(section.key)" x-cloak></span>
+                    </button>
                 </template>
             </nav>
 
-            <div class="p-3 mt-4 border-t border-slate-700">
+            <div class="mt-1 min-h-0 flex-1 overflow-y-auto border-t border-slate-700 p-3">
                 <p class="px-3 text-xs uppercase tracking-wide text-slate-500 mb-2">Riwayat</p>
-                <div class="max-h-64 overflow-y-auto space-y-1">
+                <div class="space-y-1">
                     @foreach ($perdins as $p)
-                    <div class="px-3 py-2 text-xs rounded hover:bg-slate-800 cursor-pointer"
+                    <div class="px-3 py-2 text-xs rounded hover:bg-slate-800 cursor-pointer group relative"
                         @click="loadPerdin({{ $p->id }})">
-                        <div class="font-medium truncate">{{ \Illuminate\Support\Str::limit($p->maksud_perjalanan ?? '(belum diisi)', 30) }}</div>
+                        <div class="font-medium truncate pr-5">{{ \Illuminate\Support\Str::limit($p->maksud_perjalanan ?? '(belum diisi)', 30) }}</div>
                         <div class="text-slate-500">{{ $p->created_at->format('d M Y H:i') }}</div>
+                        <button
+                            type="button"
+                            @click.stop="deletePerdin({{ $p->id }})"
+                            class="absolute top-2 right-2 text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition"
+                            title="Hapus">✕</button>
                     </div>
                     @endforeach
+                </div>
+            </div>
+
+            <div class="border-t border-slate-700 p-3">
+                <div class="flex items-center justify-center gap-2">
+                    <a href="{{ route('template-settings.index') }}" title="Pengaturan Template" aria-label="Pengaturan Template" class="flex h-10 w-10 items-center justify-center rounded-lg text-emerald-400 hover:bg-slate-800 hover:text-emerald-300">
+                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.12 2.12-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.04 1.56V20.3h-3v-.08A1.7 1.7 0 0 0 10.66 18.66a1.7 1.7 0 0 0-1.88.34l-.06.06-2.12-2.12.06-.06A1.7 1.7 0 0 0 7 15a1.7 1.7 0 0 0-1.56-1.04H5.3v-3h.14A1.7 1.7 0 0 0 7 9.92a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.12-2.12.06.06a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 11.7 4.7v-.08h3v.08a1.7 1.7 0 0 0 1.04 1.56 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.12 2.12-.06.06A1.7 1.7 0 0 0 19.4 9.92a1.7 1.7 0 0 0 1.56 1.04h.14v3h-.14A1.7 1.7 0 0 0 19.4 15Z"></path></svg>
+                    </a>
+                    <a href="{{ route('perdin.recycle') }}" title="Recycle Bin" aria-label="Recycle Bin" class="flex h-10 w-10 items-center justify-center rounded-lg text-amber-400 hover:bg-slate-800 hover:text-amber-300">
+                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v5M14 11v5"></path></svg>
+                    </a>
                 </div>
             </div>
         </aside>
 
         {{-- KONTEN --}}
-        <main class="flex-1 p-8 space-y-6">
-
-            <div class="flex items-center justify-between">
-                <div>
-                    <h2 class="text-xl font-semibold" x-text="sections.find(s => s.key === activeSection)?.label"></h2>
-                    <p class="text-sm text-slate-500" x-show="perdinId" x-text="'ID Dokumen: ' + perdinId"></p>
-                </div>
-
-                <div class="flex gap-2">
-                    <button @click="save()" :disabled="saving"
-                        class="px-4 py-2 rounded-lg bg-slate-700 text-white text-sm hover:bg-slate-800 disabled:opacity-50">
-                        <span x-show="!saving">Simpan</span>
-                        <span x-show="saving">Menyimpan...</span>
-                    </button>
-                    <button @click="generateExcel()" :disabled="!perdinId"
-                        class="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-700 disabled:opacity-40">
-                        Generate Excel
-                    </button>
-                    <button @click="generatePdf()" :disabled="!perdinId"
-                        class="px-4 py-2 rounded-lg bg-red-600 text-white text-sm hover:bg-red-700 disabled:opacity-40">
-                        Generate PDF
-                    </button>
-                    <button @click="printDocument()" :disabled="!perdinId"
-                        class="px-4 py-2 rounded-lg bg-slate-500 text-white text-sm hover:bg-slate-600 disabled:opacity-40">
-                        Print
-                    </button>
-                </div>
-            </div>
+        <main class="ml-64 min-h-screen p-8 space-y-6">
 
             <div x-show="message" x-transition class="text-sm rounded-lg px-4 py-2"
                 :class="messageType === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'"
                 x-text="message"></div>
 
-            <div class="grid grid-cols-1 xl:grid-cols-5 gap-6">
+            <div x-show="lastDeleted" x-transition class="fixed top-4 right-4 z-50">
+                <div class="flex items-center gap-3 bg-yellow-50 border border-yellow-200 text-yellow-900 px-4 py-2 rounded shadow">
+                    <div class="text-sm">File sudah dihapus.</div>
+                    <button @click="restorePerdin()" class="text-sm underline">Pulihkan</button>
+                    <button @click="lastDeleted = null" class="text-sm text-slate-500">Tutup</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-6">
                 {{-- FORM --}}
-                <div class="xl:col-span-3 bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                    <x-perdin.form />
+                <div class="relative overflow-hidden bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <div class="relative z-10">
+                        <x-perdin.form />
+                    </div>
+                    <div class="relative z-10 mt-6 pt-6 border-t border-slate-200">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div class="text-sm text-slate-500">Tombol aksi tersedia setelah data disimpan.</div>
+                            <div class="flex flex-wrap gap-2">
+                                <button @click="save()" :disabled="saving"
+                                    class="px-4 py-2 rounded-lg bg-slate-700 text-white text-sm hover:bg-slate-800 disabled:opacity-50">
+                                    <span x-show="!saving">Simpan</span>
+                                    <span x-show="saving">Menyimpan...</span>
+                                </button>
+                                <button @click="generateExcel()" :disabled="!perdinId"
+                                    class="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-700 disabled:opacity-40">
+                                    Generate Excel
+                                </button>
+                                <button @click="generatePdf()" :disabled="!perdinId"
+                                    class="px-4 py-2 rounded-lg bg-red-600 text-white text-sm hover:bg-red-700 disabled:opacity-40">
+                                    Generate PDF
+                                </button>
+                                <button @click="printDocument()" :disabled="!perdinId"
+                                    class="px-4 py-2 rounded-lg bg-slate-500 text-white text-sm hover:bg-slate-600 disabled:opacity-40">
+                                    Print
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {{-- PREVIEW --}}
-                <div class="xl:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                     <x-perdin.preview />
                 </div>
             </div>
@@ -138,9 +165,13 @@
                     mak: '',
                     sudah_terima_dari: 'BENDAHARA PENGELUARAN OMBUDSMAN RI',
                     jumlah_uang_kwitansi: 0,
+                    untuk_pembayaran: '',
                     nama_bendahara: '',
                     nip_bendahara: '',
                     lampiran_sppd_no: '',
+                    nama_bepergian: '',
+                    pernyataan_tidak_menggunakan_kendaraan: false,
+                    pernyataan_teks: '',
                     tanggal_sppd: '',
                     dpr_nama: '',
                     dpr_nip: '',
@@ -149,7 +180,10 @@
                     tanggal_spd: '',
                 },
 
+                showValidation: false,
+
                 travelers: [],
+                sbmTariffs: @js(config('sbm.provinces')),
                 rincianItems: [],
                 dprItems: [],
                 suggestions: {
@@ -183,6 +217,7 @@
                         ke: '',
                         tanggal_mulai: '',
                         tanggal_sampai: '',
+                        hari_mode: 'auto',
                         hari: 1,
                         uang_harian: 0,
                         penginapan: 0,
@@ -190,11 +225,42 @@
                         tiket: 0,
                         transportasi: 0,
                         sewa_kendaraan: 0,
+                        sbm_provinsi: '',
+                        sbm_jenis: '0',
+                        sbm_hotel_kelas: '3',
                     };
                 },
 
                 addTraveler() {
                     this.travelers.push(this.emptyTraveler());
+                },
+                normalizeSbmText(value) {
+                    return (value || '').toString().toLowerCase()
+                        .replace(/d\.k\.i\./g, 'dki')
+                        .replace(/d\.i\./g, 'di')
+                        .replace(/[^a-z0-9]+/g, ' ').trim();
+                },
+                sbmTariff(t) {
+                    const query = this.normalizeSbmText(t.sbm_provinsi);
+                    if (!query) return null;
+                    return this.sbmTariffs.find(item => {
+                        const province = this.normalizeSbmText(item.name);
+                        return province === query || province.includes(query) || query.includes(province);
+                    }) || null;
+                },
+                applySbm(t) {
+                    const tariff = this.sbmTariff(t);
+                    if (!tariff) return;
+                    t.sbm_provinsi = tariff.name;
+                    t.uang_harian = tariff.daily[Number(t.sbm_jenis)];
+                    t.penginapan = tariff.hotel[Number(t.sbm_hotel_kelas)];
+                },
+                setSbmProvinceFromDestination(t) {
+                    const destination = this.normalizeSbmText(t.ke);
+                    const tariff = this.sbmTariffs.find(item => destination.includes(this.normalizeSbmText(item.name)));
+                    if (!tariff) return;
+                    t.sbm_provinsi = tariff.name;
+                    this.applySbm(t);
                 },
                 removeTraveler(i) {
                     this.travelers.splice(i, 1);
@@ -249,11 +315,158 @@
                     setTimeout(() => this.message = '', 4000);
                 },
 
+                serverValidationErrors: {},
+                fieldSectionMap: {
+                    pertanggung_jawaban: [
+                        'maksud_perjalanan',
+                        'nama_ppk',
+                        'nip_ppk',
+                        'nama_kabag_keuangan',
+                        'nip_kabag_keuangan',
+                        'nama_mengetahui',
+                        'nama_pengaju',
+                        'travelers.*.nama',
+                        'travelers.*.jabatan',
+                        'travelers.*.hari',
+                    ],
+                    ppa: [
+                        'maksud_perjalanan',
+                        'pembebanan_anggaran',
+                        'nama_ppk',
+                        'nip_ppk',
+                        'nama_kabag_keuangan',
+                        'nip_kabag_keuangan',
+                        'nama_mengetahui',
+                        'nama_pengaju',
+                        'travelers.*.nama',
+                    ],
+                    kwitansi: [
+                        'mak',
+                        'nomor_bukti_kwitansi',
+                        'jumlah_uang_kwitansi',
+                        'untuk_pembayaran',
+                        'nama_bendahara',
+                        'nip_bendahara',
+                    ],
+                    rincian: [
+                        'lampiran_sppd_no',
+                        'tanggal_sppd',
+                        'nama_bepergian',
+                        'rincian_items.*.uraian',
+                    ],
+                    dpr: [
+                        'dpr_nama',
+                        'dpr_nip',
+                        'dpr_jabatan',
+                        'nomor_spd',
+                        'tanggal_spd',
+                        'dpr_items.*.uraian',
+                    ],
+                    pernyataan: [
+                        'pernyataan_teks',
+                        'pernyataan_tidak_menggunakan_kendaraan',
+                    ],
+                },
+
+                serverFieldHasError(field) {
+                    if (!field || !this.serverValidationErrors) {
+                        return false;
+                    }
+
+                    if (this.serverValidationErrors[field]) {
+                        return true;
+                    }
+
+                    return Object.keys(this.serverValidationErrors).some(key => {
+                        const escaped = key.split('.').map(part => {
+                            if (part === '*') {
+                                return '[^.]+'.replace(/[-\\/\\^$+?.()|[\]{}]/g, '\\$&');
+                            }
+                            return part.replace(/[-\\/\\^$+?.()|[\]{}]/g, '\\$&');
+                        }).join('\\.');
+                        return new RegExp('^' + escaped + '$').test(field);
+                    });
+                },
+
+                fieldValidationClass(field) {
+                    return this.serverFieldHasError(field) ? 'border-red-400' : '';
+                },
+
+                fieldValidationMessage(field) {
+                    if (!this.serverValidationErrors) {
+                        return '';
+                    }
+
+                    if (this.serverValidationErrors[field]?.[0]) {
+                        return this.serverValidationErrors[field][0];
+                    }
+
+                    const matchingKey = Object.keys(this.serverValidationErrors).find(key => {
+                        const escaped = key.split('.').map(part => {
+                            if (part === '*') {
+                                return '[^.]+'.replace(/[-\\/\\^$+?.()|[\]{}]/g, '\\$&');
+                            }
+                            return part.replace(/[-\\/\\^$+?.()|[\]{}]/g, '\\$&');
+                        }).join('\\.');
+
+                        return new RegExp('^' + escaped + '$').test(field);
+                    });
+
+                    return matchingKey ? this.serverValidationErrors[matchingKey][0] : '';
+                },
+
+                sectionHasErrors(key) {
+                    if (this.serverValidationErrors && this.serverHasErrorsForSection(key)) {
+                        return true;
+                    }
+
+                    // Basic client-side checks to highlight incomplete sections
+                    if (key === 'pertanggung_jawaban' || key === 'ppa') {
+                        if (!this.form.maksud_perjalanan || !this.travelers.length) return true;
+                        if (this.travelers.some(t => !t.nama || t.nama.trim() === '')) return true;
+                        return false;
+                    }
+
+                    if (key === 'rincian') {
+                        return !this.rincianItems.some(r => r.uraian && r.uraian.trim() !== '');
+                    }
+
+                    if (key === 'kwitansi') {
+                        return !this.form.mak || this.form.mak.trim() === '';
+                    }
+
+                    if (key === 'dpr') {
+                        return !this.form.dpr_nama || this.form.dpr_nama.trim() === '';
+                    }
+
+                    return false;
+                },
+
+                serverHasErrorsForSection(key) {
+                    const fields = this.fieldSectionMap[key] || [];
+                    return fields.some(field => this.serverFieldHasError(field));
+                },
+
+                lastDeleted: null,
+
+
+                validateAll() {
+                    this.showValidation = true;
+                    // If any section reports errors, form is invalid
+                    return !this.sections.some(s => this.sectionHasErrors(s.key));
+                },
+
                 async save() {
+                    if (!this.validateAll()) {
+                        this.showMessage('Form belum lengkap. Periksa tanda merah.', 'error');
+                        return;
+                    }
+
                     this.saving = true;
                     try {
                         const res = await fetch('{{ route("perdin.store") }}', {
                             method: 'POST',
+                            credentials: 'same-origin',
                             headers: {
                                 'Content-Type': 'application/json',
                                 'X-CSRF-TOKEN': this.csrf(),
@@ -261,19 +474,30 @@
                             },
                             body: JSON.stringify({
                                 ...this.form,
+                                untuk_pembayaran: this.form.untuk_pembayaran || this.form.maksud_perjalanan,
                                 travelers: this.travelers,
-                                rincian_items: this.rincianItems,
-                                dpr_items: this.dprItems,
+                                rincian_items: this.rincianItems
+                                    .filter(r => r.uraian && r.uraian.trim() !== '')
+                                    .map(r => ({
+                                        ...r,
+                                        jumlah_satuan: r.jumlah_satuan == null ? 0 : r.jumlah_satuan,
+                                        harga_satuan: r.harga_satuan == null ? 0 : r.harga_satuan,
+                                    })),
+                                dpr_items: this.dprItems.filter(d => d.uraian && d.uraian.trim() !== ''),
                             }),
                         });
 
                         const data = await res.json();
 
                         if (!res.ok) {
-                            this.showMessage(data.message || 'Gagal menyimpan data.', 'error');
+                            this.serverValidationErrors = data.errors || {};
+                            this.showValidation = true;
+                            const firstError = data.errors ? Object.values(data.errors)[0][0] : null;
+                            this.showMessage(firstError || data.message || 'Gagal menyimpan data.', 'error');
                             return;
                         }
 
+                        this.serverValidationErrors = {};
                         this.perdinId = data.perdin.id;
                         this.showMessage('Data berhasil disimpan.');
                     } catch (e) {
@@ -292,13 +516,83 @@
                         if (key in data) this.form[key] = data[key] ?? '';
                     });
                     this.travelers = data.travelers?.length ? data.travelers : [this.emptyTraveler()];
+                    this.travelers.forEach(traveler => {
+                        traveler.sbm_provinsi = traveler.sbm_provinsi || '';
+                        traveler.sbm_jenis = traveler.sbm_jenis ?? '0';
+                        traveler.sbm_hotel_kelas = traveler.sbm_hotel_kelas ?? '3';
+                    });
                     this.rincianItems = data.rincian_items ?? [];
                     this.dprItems = data.dpr_items ?? [];
+                    this.form.nama_bepergian = data.nama_bepergian || this.travelers[0]?.nama || '';
+                    this.form.untuk_pembayaran = data.untuk_pembayaran || data.maksud_perjalanan || '';
+                    // Auto-fill DPR dari Nama Pengaju jika DPR belum diisi
+                    this.form.dpr_nama = data.dpr_nama || data.nama_pengaju || '';
+                    this.form.dpr_nip = data.dpr_nip || data.nip_pengaju || '';
+                    this.form.dpr_jabatan = data.dpr_jabatan || '';
+                },
+
+                async deletePerdin(id) {
+                    if (!confirm('Hapus riwayat ini?')) {
+                        return;
+                    }
+                    try {
+                        const res = await fetch(`/perdin/${id}`, {
+                            method: 'DELETE',
+                            credentials: 'same-origin',
+                            headers: {
+                                'X-CSRF-TOKEN': this.csrf(),
+                                'Accept': 'application/json',
+                            },
+                        });
+                        if (!res.ok) {
+                            this.showMessage('Gagal menghapus data.', 'error');
+                            return;
+                        }
+
+                        const data = await res.json();
+
+                        // Set lastDeleted so user can restore
+                        this.lastDeleted = data.id || id;
+
+                        // If the deleted doc was open, clear it
+                        if (this.perdinId === id) {
+                            this.perdinId = null;
+                        }
+
+                        this.showMessage('Riwayat dihapus. Anda dapat memulihkan file.');
+                    } catch (e) {
+                        this.showMessage('Terjadi kesalahan jaringan.', 'error');
+                    }
                 },
 
                 async generateExcel() {
                     if (!this.perdinId) return;
                     window.location.href = `/perdin/${this.perdinId}/excel`;
+                },
+
+                async restorePerdin() {
+                    if (!this.lastDeleted) return;
+                    try {
+                        const res = await fetch(`/perdin/${this.lastDeleted}/restore`, {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: {
+                                'X-CSRF-TOKEN': this.csrf(),
+                                'Accept': 'application/json',
+                            },
+                        });
+                        if (!res.ok) {
+                            this.showMessage('Gagal memulihkan data.', 'error');
+                            return;
+                        }
+                        const data = await res.json();
+                        this.showMessage('Data berhasil dipulihkan.');
+                        this.lastDeleted = null;
+                        // reload to refresh history list
+                        window.location.reload();
+                    } catch (e) {
+                        this.showMessage('Terjadi kesalahan jaringan.', 'error');
+                    }
                 },
 
                 async generatePdf() {
@@ -321,8 +615,35 @@
                     }).format(n);
                 },
 
+                calculateTravelerDays(t) {
+                    if (t.tanggal_mulai && t.tanggal_sampai) {
+                        const start = new Date(t.tanggal_mulai);
+                        const end = new Date(t.tanggal_sampai);
+
+                        if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())) {
+                            const diff = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
+                            return diff > 0 ? diff : 1;
+                        }
+                    }
+
+                    return Number(t.hari || 1);
+                },
+                syncTravelerDays(t) {
+                    if (t.hari_mode !== 'auto' || !t.tanggal_mulai || !t.tanggal_sampai) {
+                        return;
+                    }
+
+                    t.hari = this.calculateTravelerDays(t);
+                },
+
+                rincianNotes() {
+                    return this.rincianItems
+                        .filter(r => r.keterangan && r.keterangan.toString().trim() !== '')
+                        .map(r => `${r.uraian}${r.uraian ? ': ' : ''}${r.keterangan}`);
+                },
+
                 travelerTotal(t) {
-                    const hari = Math.max(Number(t.hari || 1), 1);
+                    const hari = Math.max(this.calculateTravelerDays(t), 1);
                     const malam = Math.max(hari - 1, 0);
                     const uangHarianTotal = Number(t.uang_harian || 0) * hari;
                     const penginapanTotal = Number(t.penginapan || 0) * malam;

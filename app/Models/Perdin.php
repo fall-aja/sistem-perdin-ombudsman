@@ -4,11 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Perdin extends Model
 {
     use HasFactory;
+
+    use SoftDeletes;
 
     protected $guarded = [];
 
@@ -17,6 +20,7 @@ class Perdin extends Model
         'tanggal_tanda_tangan' => 'date',
         'tanggal_sppd'         => 'date',
         'tanggal_spd'          => 'date',
+        'pernyataan_tidak_menggunakan_kendaraan' => 'boolean',
     ];
 
     public function travelers(): HasMany

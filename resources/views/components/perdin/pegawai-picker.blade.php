@@ -12,11 +12,28 @@
         field-id-expr="'ppk'"
     />
 --}}
-@props(['label', 'namaModel', 'nipModel' => null, 'jabatanModel' => null, 'fieldIdExpr'])
+@props(['label', 'namaModel', 'nipModel' => null, 'jabatanModel' => null, 'fieldIdExpr', 'fieldName' => null, 'fieldNameExpr' => null])
 
 <div>
-    <div class="relative" x-data="{ get fid() { return {{ $fieldIdExpr }}; } }" @click.outside="pegawaiOpen[fid] = false">
-        <label class="text-xs font-medium text-slate-500">{{ $label }}</label>
+    <div class="relative" x-data="{ get fid() { return {{ $fieldIdExpr }}; }, fieldNameRaw: {{ $fieldName !== null ? "'" . $fieldName . "'" : 'null' }}, fieldNameExpr: {{ $fieldNameExpr !== null ? $fieldNameExpr : 'null' }}, get fieldName() {
+                if (this.fieldNameExpr) {
+                    return this.fieldNameExpr;
+                }
+
+                if (this.fieldNameRaw) {
+                    return this.fieldNameRaw;
+                }
+
+                if (this.fid && this.fid.startsWith('traveler-nama-')) {
+                    return 'travelers.' + this.fid.split('-').pop() + '.nama';
+                }
+
+                return null;
+            } }" @click.outside="pegawaiOpen[fid] = false">
+        <div class="flex items-center gap-2">
+            <label class="text-xs font-medium text-slate-500">{{ $label }}</label>
+            <span class="w-2 h-2 rounded-full bg-red-500" x-show="showValidation && fieldName && serverFieldHasError(fieldName)" x-cloak></span>
+        </div>
         <input
             type="text"
             autocomplete="off"
@@ -24,6 +41,7 @@
             @input.debounce.300ms="await searchPegawai(fid, {{ $namaModel }})"
             @focus="if (pegawaiResults[fid]?.length) pegawaiOpen[fid] = true"
             class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2"
+            :class="fieldName && fieldValidationClass(fieldName)"
         >
 
         <div

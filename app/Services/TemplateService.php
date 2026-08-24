@@ -53,6 +53,18 @@ class TemplateService
      */
     public function saveGenerated(Spreadsheet $spreadsheet, string $filename): string
     {
+        // Reset posisi kursor/scroll setiap sheet ke A1 sebelum disimpan.
+        // Tanpa ini, Excel akan membuka file dalam kondisi ter-scroll ke
+        // cell terakhir yang ditulis kode (biasanya di tengah tabel data),
+        // membuatnya TERLIHAT seolah header/judul di atas hilang, padahal
+        // sebenarnya tetap ada — cuma tidak kelihatan karena posisi scroll.
+        foreach ($spreadsheet->getAllSheets() as $sheet) {
+            $sheet->setSelectedCell('A1');
+            $sheet->freezePane('A1'); // pastikan tidak ada freeze pane nyasar
+            $sheet->getSheetView()->setZoomScale(100);
+        }
+        $spreadsheet->setActiveSheetIndex(0);
+
         $outputDir = storage_path('app/' . config('perdin.generated_path'));
         File::ensureDirectoryExists($outputDir);
 
@@ -61,6 +73,10 @@ class TemplateService
         $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
         // Jaga agar drawing (checkbox dsb) tetap ditulis oleh PhpSpreadsheet.
         $writer->setIncludeCharts(true);
+        // Tidak melakukan perhitungan ulang formula saat menyimpan karena
+        // template bisa berisi referensi ke workbook eksternal atau formula
+        // yang tidak bisa dihitung di server.
+        $writer->setPreCalculateFormulas(false);
         $writer->save($outputPath);
 
         // PhpSpreadsheet dapat merusak shape DrawingML (checkbox form-control)

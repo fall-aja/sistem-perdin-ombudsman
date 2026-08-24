@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Perdin;
 use App\Models\PerdinSheetTemplate;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Illuminate\Support\Carbon;
@@ -61,10 +62,13 @@ class ExcelGeneratorService
      */
     protected function stableFilename(Perdin $perdin): string
     {
-        $tanggal = optional($perdin->tanggal_st)->format('Ymd') ?? now()->format('Ymd');
-        $slug = str($perdin->maksud_perjalanan ?? 'perdin')->limit(40, '')->slug('_');
+        // Gunakan format sederhana: "Perdin (Nama).xlsx"
+        $name = $perdin->nama_bepergian ?: $perdin->travelers->first()?->nama ?: 'perdin';
+        // Hapus karakter yang tidak valid di nama file
+        $clean = preg_replace('/[\\\\\/\:\*\?\"\<\>\|]/u', '', (string) $name);
+        $clean = mb_substr(trim($clean), 0, 60);
 
-        return "PERDIN_{$slug}_{$tanggal}_{$perdin->id}.xlsx";
+        return "Perdin " . $clean . ".xlsx";
     }
 
     // -----------------------------------------------------------------
@@ -165,9 +169,9 @@ class ExcelGeneratorService
             'sudah_terima_dari'   => $perdin->sudah_terima_dari,
             'jumlah_uang'         => $jumlah,
             'terbilang'           => ucfirst(TerbilangService::rupiah($jumlah)),
-            'untuk_pembayaran' => $this->sheetText('kwitansi', 'teks_awalan', $perdin, (string) $perdin->maksud_perjalanan),
+            'untuk_pembayaran'    => $perdin->untuk_pembayaran ?: $this->sheetText('kwitansi', 'teks_awalan', $perdin, (string) $perdin->maksud_perjalanan),
             'kota_tanggal_ttd'    => $this->formatKotaTanggal($perdin),
-            'nama_yang_bepergian' => $pemohon?->nama,
+            'nama_yang_bepergian' => $perdin->nama_bepergian ?: $pemohon?->nama,
             'nama_ppk'            => $perdin->nama_ppk,
             'nip_ppk'             => $this->formatNip($perdin->nip_ppk),
             'nama_bendahara'      => $perdin->nama_bendahara,
@@ -193,12 +197,12 @@ class ExcelGeneratorService
             'kota_tanggal_ttd' => $this->formatKotaTanggal($perdin),
             'nama_bendahara'   => $perdin->nama_bendahara,
             'nip_bendahara'    => $this->formatNip($perdin->nip_bendahara),
-            'nama_bepergian'   => $perdin->travelers->first()?->nama,
+            'nama_bepergian'   => $perdin->nama_bepergian ?: $perdin->travelers->first()?->nama,
         ]);
 
         $table = $cfg['table'];
         $rows = $perdin->rincianItems;
-        $startRow = $this->ensureRowCapacity($sheet, $table, $rows->count());
+        $startRow = $this->ensureRowCapacity($sheet, $table, $rows->count())['start_row'];
 
         foreach ($rows as $index => $item) {
             $row = $startRow + $index;
@@ -207,13 +211,13 @@ class ExcelGeneratorService
             $sheet->setCellValue($columns['no'] . $row, $index + 1);
             $sheet->setCellValue($columns['uraian'] . $row, $item->uraian);
             $sheet->setCellValue($columns['keterangan_tambahan'] . $row, $item->keterangan_tambahan);
-            $sheet->setCellValue($columns['jumlah_satuan'] . $row, $item->jumlah_satuan);
-            $sheet->setCellValue($columns['harga_satuan'] . $row, $item->harga_satuan);
-            // Kolom "jumlah" (F) TETAP formula "=D*E" bawaan template kalau ada;
-            // hanya isi manual jika baris ini hasil insert baru (formula kosong).
-            if (! $sheet->getCell($columns['jumlah'] . $row)->getValue()) {
-                $sheet->setCellValue($columns['jumlah'] . $row, '=' . $columns['jumlah_satuan'] . $row . '*' . $columns['harga_satuan'] . $row);
-            }
+            $jumlah_satuan = $item->jumlah_satuan ? (int) $item->jumlah_satuan : 0;
+            $harga_satuan = $item->harga_satuan ? (float) $item->harga_satuan : 0.0;
+            $sheet->setCellValue($columns['jumlah_satuan'] . $row, $jumlah_satuan);
+            $sheet->setCellValue($columns['harga_satuan'] . $row, $harga_satuan);
+            // Tulis hasil akhir (jumlah_satuan * harga_satuan) sebagai angka,
+            // bukan formula, supaya file Excel berisi nilai akhir.
+            $sheet->setCellValue($columns['jumlah'] . $row, $jumlah_satuan * $harga_satuan);
             $sheet->setCellValue($columns['keterangan'] . $row, $item->keterangan);
         }
     }
@@ -239,12 +243,12 @@ class ExcelGeneratorService
             'kota_tanggal_ttd' => $this->formatKotaTanggal($perdin),
             'nama_ppk'         => $perdin->nama_ppk,
             'nip_ppk'          => $this->formatNip($perdin->nip_ppk),
-            'nama_bepergian'   => $perdin->dpr_nama,
+            'nama_bepergian'   => $perdin->nama_bepergian ?: $perdin->travelers->first()?->nama,
         ]);
 
         $table = $cfg['table'];
         $rows = $perdin->dprItems;
-        $startRow = $this->ensureRowCapacity($sheet, $table, $rows->count());
+        $startRow = $this->ensureRowCapacity($sheet, $table, $rows->count())['start_row'];
 
         foreach ($rows as $index => $item) {
             $row = $startRow + $index;
@@ -252,7 +256,7 @@ class ExcelGeneratorService
 
             $sheet->setCellValue($columns['no'] . $row, $index + 1);
             $sheet->setCellValue($columns['uraian'] . $row, $item->uraian);
-            $sheet->setCellValue($columns['jumlah'] . $row, $item->jumlah);
+            $sheet->setCellValue($columns['jumlah'] . $row, $item->jumlah ? (float) $item->jumlah : 0);
         }
     }
 
@@ -268,13 +272,33 @@ class ExcelGeneratorService
             return;
         }
 
+        $statement = $perdin->pernyataan_teks;
+
+        if (! $statement) {
+            if ($perdin->pernyataan_tidak_menggunakan_kendaraan) {
+                $statement = 'Peserta tidak menggunakan kendaraan dinas.';
+            } else {
+                $statement = 'dalam ' . lcfirst($perdin->maksud_perjalanan ?? '');
+            }
+        }
+
         $this->writeFields($sheet, $cfg, [
-            'maksud_perjalanan' => $this->sheetText('pernyataan', 'teks_awalan', $perdin, 'dalam ' . lcfirst($perdin->maksud_perjalanan ?? '')),
+            'maksud_perjalanan' => $statement,
         ]);
 
         $table = $cfg['table'];
         $travelers = $perdin->travelers;
-        $startRow = $this->ensureRowCapacity($sheet, $table, $travelers->count());
+        $startRow = $this->ensureRowCapacity($sheet, $table, $travelers->count())['start_row'];
+
+        $sums = [
+            'uang_harian' => 0.0,
+            'penginapan' => 0.0,
+            'represen' => 0.0,
+            'tiket' => 0.0,
+            'transportasi' => 0.0,
+            'sewa_kendaraan' => 0.0,
+            'jumlah' => 0.0,
+        ];
 
         foreach ($travelers as $index => $traveler) {
             $row = $startRow + $index;
@@ -322,41 +346,7 @@ class ExcelGeneratorService
      * menambah baris baru jika peserta lebih banyak dari baris yang tersedia
      * di template, sambil mempertahankan border/format lewat duplicateStyle().
      */
-    protected function fillTravelerTable(Worksheet $sheet, array $table, Perdin $perdin): void
-    {
-        $travelers = $perdin->travelers;
-        $startRow = $this->ensureRowCapacity($sheet, $table, $travelers->count());
-        $columns = $table['columns'];
-
-        foreach ($travelers as $index => $traveler) {
-            $row = $startRow + $index;
-
-            $sheet->setCellValue($columns['no'] . $row, $index + 1);
-            $sheet->setCellValue($columns['nama'] . $row, $traveler->nama);
-            $sheet->setCellValue($columns['jabatan'] . $row, $traveler->jabatan);
-            $sheet->setCellValue($columns['es'] . $row, $traveler->es ?: '-');
-            $sheet->setCellValue($columns['gol'] . $row, $traveler->gol ?: '-');
-            $sheet->setCellValue($columns['dari'] . $row, $traveler->dari);
-            $sheet->setCellValue($columns['ke'] . $row, $traveler->ke);
-            $sheet->setCellValue($columns['tanggal_mulai'] . $row, $traveler->tanggal_mulai);
-            $sheet->setCellValue($columns['tanggal_sampai'] . $row, $traveler->tanggal_sampai);
-            $sheet->getStyle($columns['tanggal_mulai'] . $row)->getNumberFormat()->setFormatCode('dd/mm/yyyy');
-            $sheet->getStyle($columns['tanggal_sampai'] . $row)->getNumberFormat()->setFormatCode('dd/mm/yyyy');
-            $sheet->setCellValue($columns['hari'] . $row, $traveler->hari);
-            $sheet->setCellValue($columns['uang_harian'] . $row, $traveler->uang_harian);
-            $sheet->setCellValue($columns['penginapan'] . $row, $traveler->penginapan);
-            $sheet->setCellValue($columns['represen'] . $row, $traveler->represen);
-            $sheet->setCellValue($columns['tiket'] . $row, $traveler->tiket);
-            $sheet->setCellValue($columns['transportasi'] . $row, $traveler->transportasi);
-            $sheet->setCellValue($columns['sewa_kendaraan'] . $row, $traveler->sewa_kendaraan);
-            $sheet->setCellValue(
-                $columns['jumlah'] . $row,
-                "={$columns['uang_harian']}{$row}*{$columns['hari']}{$row}"
-                    . "+{$columns['penginapan']}{$row}*MAX({$columns['hari']}{$row}-1,0)"
-                    . "+{$columns['represen']}{$row}+{$columns['tiket']}{$row}+{$columns['transportasi']}{$row}+{$columns['sewa_kendaraan']}{$row}"
-            );
-        }
-    }
+    
 
     /**
      * Pastikan tabel dinamis punya cukup baris untuk $needed data.
@@ -364,15 +354,18 @@ class ExcelGeneratorService
      * menyisipkan baris baru sebelum baris total sambil menduplikasi gaya
      * (border, merge, tinggi baris) dari $table['style_row'].
      *
-     * @return int baris pertama untuk mulai mengisi data
+     * @return array{start_row: int, total_row: int|null} baris pertama untuk
+     *         mulai mengisi data, dan posisi baris total SETELAH disesuaikan
+     *         (baris total ikut turun kalau ada baris baru disisipkan).
      */
-    protected function ensureRowCapacity(Worksheet $sheet, array $table, int $needed): int
+    protected function ensureRowCapacity(Worksheet $sheet, array $table, int $needed): array
     {
         $startRow = $table['start_row'];
         $styleRow = $table['style_row'] ?? $startRow;
         $totalRow = $table['total_row'] ?? null;
 
         $existingCapacity = $totalRow ? ($totalRow - $startRow) : $needed;
+        $rowsAdded = 0;
 
         if ($needed > $existingCapacity && $totalRow) {
             $rowsToAdd = $needed - $existingCapacity;
@@ -391,14 +384,98 @@ class ExcelGeneratorService
                     $sheet->getRowDimension($styleRow)->getRowHeight()
                 );
             }
+
+            $rowsAdded = $rowsToAdd;
         }
 
-        return $startRow;
+        return [
+            'start_row' => $startRow,
+            'total_row' => $totalRow ? $totalRow + $rowsAdded : null,
+        ];
     }
 
     protected function lastColumn(array $table): string
     {
         return collect($table['columns'])->sort()->last() ?? 'Z';
+    }
+
+    protected function fillTravelerTable(Worksheet $sheet, array $table, Perdin $perdin): void
+    {
+        $travelers = $perdin->travelers;
+        $capacity = $this->ensureRowCapacity($sheet, $table, $travelers->count());
+        $startRow = $capacity['start_row'];
+        $totalRow = $capacity['total_row'];
+        $columns = $table['columns'];
+
+        $sums = [
+            'uang_harian' => 0.0,
+            'penginapan' => 0.0,
+            'represen' => 0.0,
+            'tiket' => 0.0,
+            'transportasi' => 0.0,
+            'sewa_kendaraan' => 0.0,
+            'jumlah' => 0.0,
+        ];
+
+        foreach ($travelers as $index => $traveler) {
+            $row = $startRow + $index;
+
+            $sheet->setCellValue($columns['no'] . $row, $index + 1);
+            $sheet->setCellValue($columns['nama'] . $row, $traveler->nama);
+            $sheet->setCellValue($columns['jabatan'] . $row, $traveler->jabatan);
+            $sheet->setCellValue($columns['es'] . $row, $traveler->es ?: '-');
+            $sheet->setCellValue($columns['gol'] . $row, $traveler->gol ?: '-');
+            $sheet->setCellValue($columns['dari'] . $row, $traveler->dari);
+            $sheet->setCellValue($columns['ke'] . $row, $traveler->ke);
+
+            $sheet->setCellValue(
+                $columns['tanggal_mulai'] . $row,
+                $traveler->tanggal_mulai ? ExcelDate::PHPToExcel($traveler->tanggal_mulai) : null
+            );
+            $sheet->setCellValue(
+                $columns['tanggal_sampai'] . $row,
+                $traveler->tanggal_sampai ? ExcelDate::PHPToExcel($traveler->tanggal_sampai) : null
+            );
+            $sheet->getStyle($columns['tanggal_mulai'] . $row)->getNumberFormat()->setFormatCode('dd/mm/yyyy');
+            $sheet->getStyle($columns['tanggal_sampai'] . $row)->getNumberFormat()->setFormatCode('dd/mm/yyyy');
+
+            $hari = $traveler->hari ? (int) $traveler->hari : 0;
+            $uang_harian = $traveler->uang_harian ? (float) $traveler->uang_harian : 0.0;
+            $penginapan = $traveler->penginapan ? (float) $traveler->penginapan : 0.0;
+            $represen = $traveler->represen ? (float) $traveler->represen : 0.0;
+            $tiket = $traveler->tiket ? (float) $traveler->tiket : 0.0;
+            $transportasi = $traveler->transportasi ? (float) $traveler->transportasi : 0.0;
+            $sewa_kendaraan = $traveler->sewa_kendaraan ? (float) $traveler->sewa_kendaraan : 0.0;
+
+            $sheet->setCellValue($columns['hari'] . $row, $hari);
+            $sheet->setCellValue($columns['uang_harian'] . $row, $uang_harian);
+            $sheet->setCellValue($columns['penginapan'] . $row, $penginapan);
+            $sheet->setCellValue($columns['represen'] . $row, $represen);
+            $sheet->setCellValue($columns['tiket'] . $row, $tiket);
+            $sheet->setCellValue($columns['transportasi'] . $row, $transportasi);
+            $sheet->setCellValue($columns['sewa_kendaraan'] . $row, $sewa_kendaraan);
+
+            $nights = max($hari - 1, 0);
+            $rowTotal = ($uang_harian * $hari) + ($penginapan * $nights) + $represen + $tiket + $transportasi + $sewa_kendaraan;
+            $sheet->setCellValue($columns['jumlah'] . $row, $rowTotal);
+
+            $sums['uang_harian'] += $uang_harian;
+            $sums['penginapan'] += ($penginapan * $nights);
+            $sums['represen'] += $represen;
+            $sums['tiket'] += $tiket;
+            $sums['transportasi'] += $transportasi;
+            $sums['sewa_kendaraan'] += $sewa_kendaraan;
+            $sums['jumlah'] += $rowTotal;
+        }
+
+        if ($totalRow && $travelers->count() > 0) {
+            foreach (['uang_harian', 'penginapan', 'represen', 'tiket', 'transportasi', 'sewa_kendaraan', 'jumlah'] as $key) {
+                $col = $columns[$key];
+                $sheet->setCellValue($col . $totalRow, $sums[$key] ?? 0.0);
+            }
+
+            $sheet->setCellValue($columns['nama'] . $totalRow, 'Jumlah = ' . $travelers->count() . ' Orang');
+        }
     }
 
     protected function formatTanggal(?Carbon $tanggal, string $format = 'd F Y'): ?string
@@ -411,7 +488,7 @@ class ExcelGeneratorService
         $kota = $perdin->kota_tanda_tangan ?: 'Jakarta';
         $tanggal = $perdin->tanggal_tanda_tangan ?? now();
 
-        return $kota . ', ' . $tanggal->translatedFormat('d F Y');
+        return $kota . ', ' . $tanggal->translatedFormat('F Y');
     }
 
     protected function formatNip(?string $nip): ?string

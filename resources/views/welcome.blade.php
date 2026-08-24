@@ -4,10 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        <title>Sistem Perdin - ORI</title>
-
-        <!-- Tambahkan link Favicon di bawah ini -->
-    <link rel="icon" type="ori_square.png" href="{{ asset('ori_square.png') }}">
+        <title>Laravel</title>
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">

@@ -56,7 +56,7 @@ class PlaceholderTemplateService
             'nomor_rencana_kerja' => $perdin->nomor_rk,
             'pembebanan_anggaran' => $perdin->pembebanan_anggaran,
             'kota'                => $perdin->kota_tanda_tangan,
-            'tanggal'             => optional($perdin->tanggal_tanda_tangan ?? now())->translatedFormat('d F Y'),
+            'tanggal'             => optional($perdin->tanggal_tanda_tangan ?? now())->translatedFormat('F Y'),
             'nama_pejabat'        => $perdin->nama_ppk,
             'nip_pejabat'         => $perdin->nip_ppk,
             'nama_bendahara'      => $perdin->nama_bendahara,

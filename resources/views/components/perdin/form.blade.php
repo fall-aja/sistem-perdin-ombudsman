@@ -9,29 +9,37 @@
     </template>
 </datalist>
 
-{{-- ================= PERTANGGUNGJAWABAN & PPA (data header sama) ================= --}}
-<div x-show="activeSection === 'pertanggung_jawaban' || activeSection === 'ppa'" class="space-y-4">
+<datalist id="sbmProvinceList">
+    <template x-for="item in sbmTariffs" :key="item.name">
+        <option :value="item.name"></option>
+    </template>
+</datalist>
 
-    <div class="grid grid-cols-2 gap-3">
+{{-- ================= PERTANGGUNGJAWABAN & PPA (data header sama) ================= --}}
+<div x-show="activeSection === 'pertanggung_jawaban' || activeSection === 'ppa'" class="space-y-4 rounded-3xl border border-slate-200 bg-slate-50/80 p-4 shadow-sm">
+    <div class="flex items-center justify-between gap-3 rounded-2xl bg-slate-100 px-4 py-3">
         <div>
-            <label class="text-xs font-medium text-slate-500">Nomor Surat</label>
-            <input type="text" x-model="form.nomor" placeholder="mis. 123/ORI-PPA/VII/2026"
-                class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
-        </div>
-        <div>
-            <label class="text-xs font-medium text-slate-500">Pembebanan Anggaran</label>
-            <input type="text" x-model="form.pembebanan_anggaran" placeholder="524111 (Biaya Perjalanan Dinas Biasa)"
-                class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
+            <h3 class="text-sm font-semibold text-slate-800">Pertanggung Jawaban / PPA</h3>
+            <p class="text-xs text-slate-500">Isi data perjalanan, penandatangan, dan peserta.</p>
         </div>
     </div>
 
     <div>
-        <label class="text-xs font-medium text-slate-500">Maksud Perjalanan Dinas</label>
-        <textarea x-model="form.maksud_perjalanan" rows="2" placeholder="Melaksanakan perjalanan dinas ke ..."
-            class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2"></textarea>
+        <label class="text-xs font-medium text-slate-500">Nomor</label>
+        <input type="text" x-model="form.nomor"
+            class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
     </div>
 
-    <div class="grid grid-cols-4 gap-3">
+    <div>
+        <label class="text-xs font-medium text-slate-500">Maksud Perjalanan Dinas</label>
+        <div class="relative">
+            <textarea x-model="form.maksud_perjalanan" x-effect="if (!form.untuk_pembayaran) form.untuk_pembayaran = form.maksud_perjalanan" rows="2" placeholder="Melaksanakan perjalanan dinas ke ..."
+                class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2" :class="{'border-red-400': showValidation && (!form.maksud_perjalanan || form.maksud_perjalanan.trim() === '')}"></textarea>
+            <span class="absolute right-3 top-3 w-2 h-2 rounded-full bg-red-500" x-show="showValidation && (!form.maksud_perjalanan || form.maksud_perjalanan.trim() === '')" x-cloak></span>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div>
             <label class="text-xs font-medium text-slate-500">Surat Tugas (Jabatan)</label>
             <input type="text" x-model="form.surat_tugas_jabatan" placeholder="Anggota Ombudsman RI"
@@ -39,7 +47,7 @@
         </div>
         <div>
             <label class="text-xs font-medium text-slate-500">Nomor Surat Tugas</label>
-            <input type="text" x-model="form.nomor_st"
+            <input type="text" x-model="form.nomor_st" placeholder="mis. 123/ORI-PPA/VII/2026"
                 class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
         </div>
         <div>
@@ -54,7 +62,13 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-2 gap-3">
+    <div>
+        <label class="text-xs font-medium text-slate-500">Pembebanan Anggaran</label>
+        <input type="text" x-model="form.pembebanan_anggaran" placeholder="524111 (Biaya Perjalanan Dinas Biasa)"
+            class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
             <label class="text-xs font-medium text-slate-500">Kota Tanda Tangan</label>
             <input type="text" x-model="form.kota_tanda_tangan" list="kotaList"
@@ -62,36 +76,32 @@
         </div>
         <div>
             <label class="text-xs font-medium text-slate-500">Tanggal Tanda Tangan</label>
-            <input type="date" x-model="form.tanggal_tanda_tangan"
+            <input type="month" x-model="form.tanggal_tanda_tangan"
                 class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
         </div>
     </div>
 
-    <h4 class="font-medium text-sm pt-3 border-t border-slate-200">Penandatangan</h4>
-    <div class="grid grid-cols-3 gap-3">
-        <x-perdin.pegawai-picker label="Nama PPK" nama-model="form.nama_ppk" nip-model="form.nip_ppk" field-id-expr="'ppk'" />
-        <x-perdin.pegawai-picker label="Nama Kabag Keuangan" nama-model="form.nama_kabag_keuangan" nip-model="form.nip_kabag_keuangan" field-id-expr="'kabag'" />
-        <x-perdin.pegawai-picker label="Nama (Mengetahui)" nama-model="form.nama_mengetahui" field-id-expr="'mengetahui'" />
-        <x-perdin.pegawai-picker label="Nama Pengaju" nama-model="form.nama_pengaju" nip-model="form.nip_pengaju" field-id-expr="'pengaju'" />
-    </div>
-
     <h4 class="font-medium text-sm pt-3 border-t border-slate-200">Daftar Peserta</h4>
     <template x-for="(t, i) in travelers" :key="i">
-        <div class="border border-slate-200 rounded-lg p-4 space-y-3 relative bg-slate-50/50">
+        <div class="mb-4 border border-slate-200 rounded-lg p-4 space-y-3 relative bg-slate-50/50">
             <button type="button" @click="removeTraveler(i)" class="absolute top-3 right-3 text-red-500 text-xs hover:underline">Hapus</button>
 
-            <div class="grid grid-cols-4 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <x-perdin.pegawai-picker
                     label="Nama"
                     nama-model="t.nama"
                     jabatan-model="t.jabatan"
-                    field-id-expr="'traveler-nama-' + i" />
+                    field-id-expr="'traveler-nama-' + i"
+                    field-name="travelers.${i}.nama" />
+                <template>
+                    <span class="text-xs text-red-500" x-show="showValidation && (!t.nama || t.nama.trim() === '')" x-cloak>•</span>
+                </template>
                 <div>
                     <label class="text-xs font-medium text-slate-500">Jabatan/Peran</label>
                     <input type="text" x-model="t.jabatan" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
                 </div>
                 <div>
-                    <label class="text-xs font-medium text-slate-500">Eselon</label>
+                    <label class="text-xs font-medium text-slate-500">Es</label>
                     <input type="text" x-model="t.es" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
                 </div>
                 <div>
@@ -99,45 +109,107 @@
                     <input type="text" x-model="t.gol" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
                 </div>
             </div>
-            <div class="grid grid-cols-5 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                 <div>
                     <label class="text-xs font-medium text-slate-500">Dari</label>
                     <input type="text" x-model="t.dari" list="kotaList" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
                 </div>
                 <div>
                     <label class="text-xs font-medium text-slate-500">Ke</label>
-                    <input type="text" x-model="t.ke" list="kotaList" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
+                    <input type="text" x-model="t.ke" @change="setSbmProvinceFromDestination(t)" list="kotaList" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
                 </div>
                 <div>
                     <label class="text-xs font-medium text-slate-500">Tgl Mulai</label>
-                    <input type="date" x-model="t.tanggal_mulai" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
+                    <input type="date" x-model="t.tanggal_mulai" @input="if (t.tanggal_mulai && t.tanggal_sampai && t.hari_mode === 'auto') t.hari = calculateTravelerDays(t)" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
                 </div>
                 <div>
                     <label class="text-xs font-medium text-slate-500">Tgl Selesai</label>
-                    <input type="date" x-model="t.tanggal_sampai" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
+                    <input type="date" x-model="t.tanggal_sampai" @input="if (t.tanggal_mulai && t.tanggal_sampai && t.hari_mode === 'auto') t.hari = calculateTravelerDays(t)" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
                 </div>
                 <div>
                     <label class="text-xs font-medium text-slate-500">Hari</label>
-                    <input type="number" x-model.number="t.hari" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
+                    <div class="mt-1 flex gap-2">
+                        <select x-model="t.hari_mode" @change="if (t.hari_mode === 'auto' && t.tanggal_mulai && t.tanggal_sampai) t.hari = calculateTravelerDays(t)" class="w-28 rounded-lg border border-slate-300 text-sm px-2 py-2 bg-white">
+                            <option value="auto">Auto</option>
+                            <option value="manual">Manual</option>
+                        </select>
+                        <input type="number" x-model.number="t.hari" :disabled="t.hari_mode === 'auto'" :class="t.hari_mode === 'auto' ? 'bg-slate-100 cursor-not-allowed' : ''" class="w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
+                    </div>
                 </div>
             </div>
 
-            <div class="grid grid-cols-6 gap-3">
+            <section class="rounded-2xl border border-blue-200 bg-blue-50/70 p-4">
+                <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <h5 class="text-sm font-semibold text-blue-900">Tarif SBM</h5>
+                        <p class="text-xs text-blue-700">PMK 32 Tahun 2025 · Tarif otomatis masih dapat Anda sesuaikan.</p>
+                    </div>
+                    <span class="rounded-full border border-blue-200 bg-white px-2 py-1 text-xs font-medium text-blue-700">TA 2026</span>
+                </div>
+                <div class="space-y-3">
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div><label class="text-sm font-medium text-slate-700">SBM Uang Harian</label><select x-model="t.sbm_provinsi" @change="applySbm(t)" class="mt-1 w-full rounded-lg border border-blue-200 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm">
+                                <option value="">Pilih provinsi</option><template x-for="item in sbmTariffs" :key="item.name">
+                                    <option :value="item.name" x-text="item.name"></option>
+                                </template>
+                            </select></div>
+                        <div><label class="text-sm font-medium text-slate-700">SBM per hari</label>
+                            <div class="mt-1 flex min-h-[42px] items-center rounded-lg border border-blue-200 bg-white px-3 text-sm font-semibold text-slate-800 shadow-sm" x-text="sbmTariff(t) ? formatRupiah(sbmTariff(t).daily[t.sbm_jenis]) : 'Rp. -'"></div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div><label class="text-sm font-medium text-slate-700">SBM Penginapan</label>
+                            <div class="mt-1 flex min-h-[42px] items-center rounded-lg border border-blue-200 bg-white px-3 text-sm text-slate-700 shadow-sm" x-text="t.sbm_provinsi || 'Pilih provinsi pada SBM Uang Harian'"></div>
+                        </div>
+                        <div><label class="text-sm font-medium text-slate-700">SBM per malam</label>
+                            <div class="mt-1 flex min-h-[42px] items-center rounded-lg border border-blue-200 bg-white px-3 text-sm font-semibold text-slate-800 shadow-sm" x-text="sbmTariff(t) ? formatRupiah(sbmTariff(t).hotel[t.sbm_hotel_kelas]) : 'Rp. -'"></div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div><label class="text-sm font-medium text-slate-700">SBM Tiket</label>
+                            <div class="mt-1 flex min-h-[42px] items-center rounded-lg border border-blue-200 bg-white px-3 text-sm text-slate-700 shadow-sm" x-text="t.sbm_provinsi || 'Pilih provinsi pada SBM Uang Harian'"></div>
+                        </div>
+                        <div><label class="text-sm font-medium text-slate-700">SBM Tiket</label>
+                            <div class="relative mt-1"><span class="absolute inset-y-0 left-3 flex items-center text-sm text-slate-500">Rp.</span><input type="number" x-model.number="t.tiket" min="0" placeholder="0" class="w-full rounded-lg border border-blue-200 bg-white py-2.5 pl-10 pr-3 text-sm font-semibold text-slate-800 shadow-sm"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4 grid grid-cols-1 gap-3 border-t border-blue-200 pt-3 sm:grid-cols-2">
+                    <div><label class="text-xs font-medium text-slate-600">Jenis uang harian</label><select x-model="t.sbm_jenis" @change="applySbm(t)" class="mt-1 w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm">
+                            <option value="0">Luar kota</option>
+                            <option value="1">Dalam kota &gt; 8 jam</option>
+                            <option value="2">Diklat</option>
+                        </select></div>
+                    <div><label class="text-xs font-medium text-slate-600">Golongan penginapan</label><select x-model="t.sbm_hotel_kelas" @change="applySbm(t)" class="mt-1 w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm">
+                            <option value="3">Eselon IV / Gol. III, II, I</option>
+                            <option value="2">Eselon III / Gol. IV</option>
+                            <option value="1">Pejabat negara lain / Eselon II</option>
+                            <option value="0">Pejabat negara / Wakil Menteri / Eselon I</option>
+                        </select></div>
+                </div>
+                <p class="mt-3 text-xs text-slate-600">Tiket merupakan biaya riil/perkiraan dan tidak diisi otomatis dari tabel SBM.</p>
+            </section>
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 <div>
-                    <label class="text-xs font-medium text-slate-500">Uang Harian</label>
+                    <label class="text-xs font-medium text-slate-500">Uang Harian (per hari)</label>
                     <input type="number" x-model.number="t.uang_harian" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
+                    <div class="text-xs text-slate-500 mt-1" x-text="'Total: ' + formatRupiah( (Number(t.uang_harian||0) * Math.max(Number(t.hari||1),1)) )"></div>
                 </div>
                 <div>
-                    <label class="text-xs font-medium text-slate-500">Penginapan</label>
+                    <label class="text-xs font-medium text-slate-500">Penginapan (per malam)</label>
                     <input type="number" x-model.number="t.penginapan" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
+                    <div class="text-xs text-slate-500 mt-1" x-text="'Total: ' + formatRupiah( Number(t.penginapan||0) * Math.max(Math.max(Number(t.hari||1),1)-1,0) )"></div>
                 </div>
                 <div>
                     <label class="text-xs font-medium text-slate-500">Represen</label>
                     <input type="number" x-model.number="t.represen" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
+                    <div class="text-xs text-slate-500 mt-1" x-text="'Total: ' + formatRupiah(Number(t.represen||0))"></div>
                 </div>
                 <div>
-                    <label class="text-xs font-medium text-slate-500">Tiket</label>
-                    <input type="number" x-model.number="t.tiket" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
+                    <label class="text-xs font-medium text-slate-500">Tiket (opsional)</label>
+                    <div class="mt-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700" x-text="t.tiket ? formatRupiah(Number(t.tiket || 0)) : 'Belum diisi'"></div>
+                    <div class="text-xs text-slate-500 mt-1">Diisi pada panel Tarif SBM.</div>
                 </div>
                 <div>
                     <label class="text-xs font-medium text-slate-500">Transport</label>
@@ -153,10 +225,24 @@
         </div>
     </template>
     <button type="button" @click="addTraveler()" class="text-sm text-blue-600 font-medium hover:underline">+ Tambah Peserta</button>
+
+    <h4 class="font-medium text-sm pt-3 border-t border-slate-200">Penandatangan</h4>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <x-perdin.pegawai-picker label="Nama PPK" nama-model="form.nama_ppk" nip-model="form.nip_ppk" field-id-expr="'ppk'" field-name="nama_ppk" />
+        <x-perdin.pegawai-picker label="Nama Kabag Keuangan" nama-model="form.nama_kabag_keuangan" nip-model="form.nip_kabag_keuangan" field-id-expr="'kabag'" field-name="nama_kabag_keuangan" />
+        <x-perdin.pegawai-picker label="Nama (Mengetahui)" nama-model="form.nama_mengetahui" field-id-expr="'mengetahui'" field-name="nama_mengetahui" />
+        <x-perdin.pegawai-picker label="Nama Pengaju" nama-model="form.nama_pengaju" nip-model="form.nip_pengaju" jabatan-model="form.dpr_jabatan" field-id-expr="'pengaju'" field-name="nama_pengaju" />
+    </div>
 </div>
 
 {{-- ================= KWITANSI ================= --}}
-<div x-show="activeSection === 'kwitansi'" class="space-y-4">
+<div x-show="activeSection === 'kwitansi'" class="space-y-4 rounded-3xl border border-slate-200 bg-slate-50/80 p-4 shadow-sm">
+    <div class="flex items-center justify-between gap-3 rounded-2xl bg-slate-100 px-4 py-3">
+        <div>
+            <h3 class="text-sm font-semibold text-slate-800">Kwitansi PERDIN</h3>
+            <p class="text-xs text-slate-500">Informasi pengeluaran dan nama bendahara.</p>
+        </div>
+    </div>
     <div class="grid grid-cols-3 gap-3">
         <div>
             <label class="text-xs font-medium text-slate-500">Tahun Anggaran</label>
@@ -182,15 +268,25 @@
             <input type="number" x-model.number="form.jumlah_uang_kwitansi" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
             <p class="text-xs text-slate-400 mt-1">Kosongkan untuk otomatis dari total biaya peserta.</p>
         </div>
+        <div>
+            <label class="text-xs font-medium text-slate-500">Untuk Pembayaran</label>
+            <textarea x-model="form.untuk_pembayaran" rows="2" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2" placeholder="Untuk pembayaran ..."></textarea>
+        </div>
     </div>
     <div class="grid grid-cols-2 gap-3">
-        <x-perdin.pegawai-picker label="Nama Bendahara" nama-model="form.nama_bendahara" nip-model="form.nip_bendahara" field-id-expr="'bendahara'" />
+        <x-perdin.pegawai-picker label="Nama Bendahara" nama-model="form.nama_bendahara" nip-model="form.nip_bendahara" field-id-expr="'bendahara'" field-name="nama_bendahara" />
     </div>
 </div>
 
 {{-- ================= RINCIAN ================= --}}
-<div x-show="activeSection === 'rincian'" class="space-y-4">
-    <div class="grid grid-cols-2 gap-3">
+<div x-show="activeSection === 'rincian'" class="space-y-4 rounded-3xl border border-slate-200 bg-slate-50/80 p-4 shadow-sm">
+    <div class="flex items-center justify-between gap-3 rounded-2xl bg-slate-100 px-4 py-3">
+        <div>
+            <h3 class="text-sm font-semibold text-slate-800">Rincian Biaya PERDIN</h3>
+            <p class="text-xs text-slate-500">Rincian biaya, lampiran SPPD, dan nama yang bepergian.</p>
+        </div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div>
             <label class="text-xs font-medium text-slate-500">Lampiran SPPD No.</label>
             <input type="text" x-model="form.lampiran_sppd_no" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
@@ -199,79 +295,114 @@
             <label class="text-xs font-medium text-slate-500">Tanggal SPPD</label>
             <input type="date" x-model="form.tanggal_sppd" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
         </div>
-        <template x-for="(r, i) in rincianItems" :key="i">
+        <div>
+            <label class="text-xs font-medium text-slate-500">&nbsp;</label>
+            <div class="text-xs text-slate-400">Nama yang Bepergian akan muncul di bawah Rincian.</div>
+        </div>
+    </div>
+
+    <template x-for="(r, i) in rincianItems" :key="i">
         <div class="border border-slate-200 rounded-lg p-4 space-y-3 relative bg-slate-50/50">
             <button type="button" @click="removeRincianItem(i)" class="absolute top-3 right-3 text-red-500 text-xs hover:underline">Hapus</button>
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                    <label class="text-xs font-medium text-slate-500">Uraian</label>
-                    <input type="text" x-model="r.uraian" placeholder="mis. Uang Harian" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
+                    <label class="text-xs font-medium text-slate-500">Perincian Biaya</label>
+                    <div class="relative">
+                        <input type="text" x-model="r.uraian" placeholder="mis. Uang Harian" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2" :class="{'border-red-400': showValidation && (!r.uraian || r.uraian.trim() === '')}">
+                        <span class="absolute right-3 top-3 w-2 h-2 rounded-full bg-red-500" x-show="showValidation && (!r.uraian || r.uraian.trim() === '')" x-cloak></span>
+                    </div>
                 </div>
+                <div>
+                    <label class="text-xs font-medium text-slate-500">Jumlah / Hari</label>
+                    <input type="number" x-model.number="r.jumlah_satuan" min="0" step="0.01" placeholder="mis. 1" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                     <label class="text-xs font-medium text-slate-500">Keterangan Tambahan</label>
-                    <input type="text" x-model="r.keterangan_tambahan" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
+                    <input type="text" x-model="r.keterangan_tambahan" placeholder="mis. Uang Harian"
+                        class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
+                </div>
+                <div>
+                    <label class="text-xs font-medium text-slate-500">Harga (Rp)</label>
+                    <input type="number" x-model.number="r.harga_satuan" min="0" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
                 </div>
             </div>
-            <div class="grid grid-cols-3 gap-3">
-                <div>
-                    <label class="text-xs font-medium text-slate-500">Jumlah/Hari</label>
-                    <input type="number" x-model.number="r.jumlah_satuan" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
-                </div>
-                <div>
-                    <label class="text-xs font-medium text-slate-500">Harga Satuan</label>
-                    <input type="number" x-model.number="r.harga_satuan" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
-                </div>
-                <div>
-                    <label class="text-xs font-medium text-slate-500">Keterangan</label>
-                    <input type="text" x-model="r.keterangan" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
-                </div>
+            <div>
+                <label class="text-xs font-medium text-slate-500">Keterangan</label>
+                <input type="text" x-model="r.keterangan" placeholder="mis. Transport, hotel, dll." class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
             </div>
         </div>
-    </template>
-    <button type="button" @click="addRincianItem()" class="text-sm text-blue-600 font-medium hover:underline">+ Tambah Rincian</button>
+</div>
+</template>
+<button type="button" @click="addRincianItem()" class="text-sm text-blue-600 font-medium hover:underline">+ Tambah Rincian</button>
+<div class="mt-4">
+    <x-perdin.pegawai-picker label="Nama yang Bepergian (untuk Rincian)" nama-model="form.nama_bepergian" field-id-expr="'nama_bepergian'" field-name="nama_bepergian" />
+    <p class="text-xs text-slate-400 mt-1">Pilih pegawai dari daftar atau ketik untuk mencari. Jika kosong, akan mengikuti Nama Pengaju secara otomatis.</p>
+</div>
 </div>
 
 {{-- ================= DPR ================= --}}
-<div x-show="activeSection === 'dpr'" class="space-y-4">
-    <div class="grid grid-cols-3 gap-3">
-        <x-perdin.pegawai-picker label="Nama" nama-model="form.dpr_nama" nip-model="form.dpr_nip" jabatan-model="form.dpr_jabatan" field-id-expr="'dpr'" />
+<div x-show="activeSection === 'dpr'" class="space-y-4 rounded-3xl border border-slate-200 bg-slate-50/80 p-4 shadow-sm">
+    <div class="flex items-center justify-between gap-3 rounded-2xl bg-slate-100 px-4 py-3">
         <div>
-            <label class="text-xs font-medium text-slate-500">Jabatan</label>
-            <input type="text" x-model="form.dpr_jabatan" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
+            <h3 class="text-sm font-semibold text-slate-800">DPR PERDIN</h3>
+            <p class="text-xs text-slate-500">Daftar pengeluaran riil untuk perjalanan dinas.</p>
+        </div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+            <x-perdin.pegawai-picker label="Nama (DPR)" nama-model="form.dpr_nama" nip-model="form.dpr_nip" jabatan-model="form.dpr_jabatan" field-id-expr="'dpr'" field-name="dpr_nama" />
         </div>
         <div>
             <label class="text-xs font-medium text-slate-500">Nomor SPD</label>
             <input type="text" x-model="form.nomor_spd" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
         </div>
-    </div>
-    <div class="grid grid-cols-2 gap-3">
         <div>
             <label class="text-xs font-medium text-slate-500">Tanggal SPD</label>
             <input type="date" x-model="form.tanggal_spd" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
         </div>
     </div>
 
-    <template x-for="(d, i) in dprItems" :key="i">
-        <div class="border border-slate-200 rounded-lg p-4 flex gap-3 items-end bg-slate-50/50">
-            <div class="flex-1">
-                <label class="text-xs font-medium text-slate-500">Uraian</label>
-                <input type="text" x-model="d.uraian" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
+    <div class="space-y-4">
+        <h4 class="font-medium text-sm pt-3 border-t border-slate-200">Daftar Pengeluaran Riil</h4>
+        <template x-for="(d, i) in dprItems" :key="i">
+            <div class="border border-slate-200 rounded-lg p-4 space-y-3 relative bg-slate-50/50">
+                <button type="button" @click="removeDprItem(i)" class="absolute top-3 right-3 text-red-500 text-xs hover:underline">Hapus</button>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="text-xs font-medium text-slate-500">Uraian</label>
+                        <input type="text" x-model="d.uraian" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="text-xs font-medium text-slate-500">Jumlah (Rp)</label>
+                        <input type="number" x-model.number="d.jumlah" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
+                    </div>
+                </div>
             </div>
-            <div class="w-36">
-                <label class="text-xs font-medium text-slate-500">Jumlah</label>
-                <input type="number" x-model.number="d.jumlah" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
-            </div>
-            <button type="button" @click="removeDprItem(i)" class="text-red-500 text-xs hover:underline pb-2.5">Hapus</button>
-        </div>
-    </template>
-    <button type="button" @click="addDprItem()" class="text-sm text-blue-600 font-medium hover:underline">+ Tambah Pengeluaran</button>
+        </template>
+        <button type="button" @click="addDprItem()" class="text-sm text-blue-600 font-medium hover:underline">+ Tambah DPR</button>
+    </div>
 </div>
 
 {{-- ================= PERNYATAAN ================= --}}
-<div x-show="activeSection === 'pernyataan'" class="space-y-4">
-    <p class="text-sm text-slate-500">
-        Surat pernyataan tidak menggunakan kendaraan dinas otomatis diisi dari
-        <strong>Maksud Perjalanan Dinas</strong> dan <strong>Daftar Peserta</strong> pada tab
-        "Pertanggung Jawaban PERDIN" / "PPA PERDIN". Tidak ada input tambahan di sini.
-    </p>
+<div x-show="activeSection === 'pernyataan'" class="space-y-4 rounded-3xl border border-slate-200 bg-slate-50/80 p-4 shadow-sm">
+    <div class="flex items-center justify-between gap-3 rounded-2xl bg-slate-100 px-4 py-3">
+        <div>
+            <h3 class="text-sm font-semibold text-slate-800">Pernyataan</h3>
+            <p class="text-xs text-slate-500">Tentukan pernyataan manual atau status kendaraan dinas.</p>
+        </div>
+    </div>
+    <div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
+        <div class="flex items-center gap-3">
+            <input id="pernyataan-kendaraan" type="checkbox" x-model="form.pernyataan_tidak_menggunakan_kendaraan" class="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+            <label for="pernyataan-kendaraan" class="text-sm font-medium text-slate-500">Peserta tidak menggunakan kendaraan dinas</label>
+        </div>
+        <p class="text-xs text-slate-500 mt-2">Centang jika kendaraan dinas tidak digunakan. Jika dikosongkan, pernyataan otomatis akan diambil dari maksud perjalanan.</p>
+    </div>
+    <div>
+        <label class="text-xs font-medium text-slate-500">Pernyataan Manual</label>
+        <textarea x-model="form.pernyataan_teks" rows="5" placeholder="Masukkan pernyataan manual di sini" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2"></textarea>
+        <p class="text-xs text-slate-400 mt-1">Isi jika ingin menggunakan teks pernyataan sendiri. Kosongkan untuk mengambil pernyataan otomatis.</p>
+    </div>
 </div>

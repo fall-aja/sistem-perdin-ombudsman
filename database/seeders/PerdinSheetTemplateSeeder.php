@@ -21,7 +21,7 @@ class PerdinSheetTemplateSeeder extends Seeder
                 'file_name' => 'Pertanggung Jawaban PERDIN',
                 'sheet_name' => 'pertanggung jawaban PERDIN',
                 'judul_dokumen' => 'PERTANGGUNGJAWABAN PERJALANAN DINAS',
-                'teks_awalan' => 'Hal',
+                'teks_awalan' => 'Pertanggungjawaban Perjalanan Dinas',
                 'teks_penutup' => null,
                 'target_cell_awalan' => 'C4 (Hal)',
                 'target_cell_penutup' => null,

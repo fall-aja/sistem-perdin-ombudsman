@@ -19,5 +19,9 @@ Route::prefix('perdin')->name('perdin.')->group(function () {
     Route::get('/{perdin}/preview', [PerdinController::class, 'preview'])->name('preview');
     Route::get('/{perdin}/excel', [PerdinController::class, 'generateExcel'])->name('excel');
     Route::get('/{perdin}/pdf', [PerdinController::class, 'generatePdf'])->name('pdf');
+    Route::get('/{perdin}/ppa-pdf', [PerdinController::class, 'ppaPdf'])->name('ppa-pdf');
+    Route::get('/recycle', [PerdinController::class, 'recycleIndex'])->name('recycle');
+    Route::post('/{perdin}/force-delete', [PerdinController::class, 'forceDelete'])->name('force-delete');
     Route::delete('/{perdin}', [PerdinController::class, 'destroy'])->name('destroy');
+    Route::post('/{perdin}/restore', [PerdinController::class, 'restore'])->name('restore');
 });

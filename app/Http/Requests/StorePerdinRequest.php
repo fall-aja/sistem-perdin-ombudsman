@@ -3,12 +3,25 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Validation\ValidationException;
 
 class StorePerdinRequest extends FormRequest
 {
     public function authorize(): bool
     {
         return true; // tanpa login sesuai spec (dashboard langsung terbuka)
+    }
+
+    protected function failedValidation(Validator $validator)
+    {
+        $response = new JsonResponse([
+            'message' => 'Validasi gagal. Periksa field yang diberi tanda merah.',
+            'errors' => $validator->errors(),
+        ], 422);
+
+        throw new ValidationException($validator, $response);
     }
 
     public function rules(): array
@@ -23,7 +36,7 @@ class StorePerdinRequest extends FormRequest
             'nomor_rk'              => ['nullable', 'string', 'max:150'],
             'pembebanan_anggaran'   => ['nullable', 'string', 'max:150'],
             'kota_tanda_tangan'     => ['nullable', 'string', 'max:50'],
-            'tanggal_tanda_tangan'  => ['nullable', 'date'],
+            'tanggal_tanda_tangan'  => ['nullable', 'date_format:Y-m'],
 
             // Penandatangan
             'nama_ppk'              => ['nullable', 'string', 'max:150'],
@@ -39,7 +52,9 @@ class StorePerdinRequest extends FormRequest
             'mak'                   => ['nullable', 'string', 'max:100'],
             'sudah_terima_dari'     => ['nullable', 'string', 'max:200'],
             'jumlah_uang_kwitansi'  => ['nullable', 'integer', 'min:0'],
+            'untuk_pembayaran'      => ['nullable', 'string', 'max:500'],
             'nama_bendahara'        => ['nullable', 'string', 'max:150'],
+            'nama_bepergian'        => ['nullable', 'string', 'max:150'],
             'nip_bendahara'         => ['nullable', 'string', 'max:50'],
 
             // Rincian
@@ -52,6 +67,10 @@ class StorePerdinRequest extends FormRequest
             'dpr_jabatan'           => ['nullable', 'string', 'max:150'],
             'nomor_spd'             => ['nullable', 'string', 'max:100'],
             'tanggal_spd'           => ['nullable', 'date'],
+
+            // Pernyataan
+            'pernyataan_tidak_menggunakan_kendaraan' => ['nullable', 'boolean'],
+            'pernyataan_teks'      => ['nullable', 'string', 'max:1000'],
 
             // Peserta (tabel dinamis)
             'travelers'                       => ['required', 'array', 'min:1'],
