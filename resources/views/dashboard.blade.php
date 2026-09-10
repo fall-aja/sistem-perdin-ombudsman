@@ -1,3 +1,9 @@
+@php
+    $sbmTariffsJson = json_encode(config('sbm.provinces'));
+@endphp
+
+<div id="sbm-config" data-sbm="{{ json_encode(config('sbm.provinces')) }}" class="hidden"></div>
+
 <x-layouts.app>
     <div x-data="perdinApp()" x-init="init()" x-cloak class="min-h-screen">
 
@@ -14,15 +20,27 @@
             </div>
 
             <nav class="m-3 space-y-1 rounded-xl border border-slate-700/90 bg-slate-800/35 p-2 shadow-inner shadow-slate-950/20">
+                <div class="px-3 pb-2 text-xs uppercase tracking-wide text-slate-500">Menu Utama</div>
                 <template x-for="section in sections" :key="section.key">
                     <button
                         @click="activeSection = section.key"
                         class="flex w-full items-center justify-between rounded-lg border border-transparent px-3 py-2 text-left text-sm transition"
                         :class="activeSection === section.key ? 'border-blue-400/60 bg-blue-600 text-white shadow-sm' : 'hover:border-slate-600 hover:bg-slate-800'">
-                        <span x-text="section.label"></span>
-                        <span class="w-3 h-3 rounded-full bg-red-500" x-show="sectionHasErrors(section.key)" x-cloak></span>
+                        <span class="flex items-center gap-2 min-w-0">
+                            <span class="shrink-0 [&>svg]:h-4 [&>svg]:w-4" x-html="section.icon"></span>
+                            <span class="truncate" x-text="section.label"></span>
+                        </span>
+                        <span class="w-3 h-3 rounded-full bg-red-500 shrink-0" x-show="sectionHasErrors(section.key)" x-cloak></span>
                     </button>
                 </template>
+                <button @click="activeSection = 'surat_tugas'" type="button"
+                    class="flex w-full items-center justify-between rounded-lg border border-transparent px-3 py-2 text-left text-sm transition"
+                    :class="activeSection === 'surat_tugas' ? 'border-blue-400/60 bg-blue-600 text-white shadow-sm' : 'hover:border-slate-600 hover:bg-slate-800'">
+                    <span class="flex items-center gap-2 min-w-0">
+                        <span class="shrink-0 [&>svg]:h-4 [&>svg]:w-4" x-html="suratTugasIcon"></span>
+                        <span class="truncate">Penyimpanan MAK / Surat Tugas</span>
+                    </span>
+                </button>
             </nav>
 
             <div class="mt-1 min-h-0 flex-1 overflow-y-auto border-t border-slate-700 p-3">
@@ -62,6 +80,10 @@
                 :class="messageType === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'"
                 x-text="message"></div>
 
+            @if (session('message'))
+                <div class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-700">{{ session('message') }}</div>
+            @endif
+
             <div x-show="lastDeleted" x-transition class="fixed top-4 right-4 z-50">
                 <div class="flex items-center gap-3 bg-yellow-50 border border-yellow-200 text-yellow-900 px-4 py-2 rounded shadow">
                     <div class="text-sm">File sudah dihapus.</div>
@@ -71,8 +93,38 @@
             </div>
 
             <div class="grid grid-cols-1 gap-6">
+                <section x-show="activeSection === 'surat_tugas'" x-cloak class="space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <div>
+                        <h2 class="text-lg font-semibold text-slate-800">Penyimpanan Surat Tugas</h2>
+                        <p class="text-sm text-slate-500">Upload surat tugas terlebih dahulu dan cari kembali berdasarkan nomor atau MAK.</p>
+                    </div>
+                    <form method="POST" action="{{ route('surat-tugas.store') }}" enctype="multipart/form-data" class="grid grid-cols-1 gap-3 md:grid-cols-5">
+                        @csrf
+                        <input name="nomor" required placeholder="Nomor surat tugas" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        <input name="tanggal" type="date" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        <input name="mak" placeholder="MAK" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        <input name="file" required type="file" accept=".pdf,.doc,.docx,.xls,.xlsx" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        <button class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Simpan Surat Tugas</button>
+                    </form>
+                    <form method="GET" action="{{ route('dashboard') }}" class="flex gap-2">
+                        <input name="q" value="{{ request('q') }}" placeholder="Cari nomor, MAK, atau nama file" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        <button class="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50">Cari</button>
+                    </form>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead><tr class="border-b text-xs uppercase text-slate-500"><th class="px-3 py-2">Nomor</th><th class="px-3 py-2">Tanggal</th><th class="px-3 py-2">MAK</th><th class="px-3 py-2">File</th><th></th></tr></thead>
+                            <tbody>
+                            @forelse ($suratTugas as $surat)
+                                <tr class="border-b border-slate-100"><td class="px-3 py-2">{{ $surat->nomor }}</td><td class="px-3 py-2">{{ optional($surat->tanggal)->format('d M Y') ?: '-' }}</td><td class="px-3 py-2">{{ $surat->mak ?: '-' }}</td><td class="px-3 py-2"><a class="text-blue-600 hover:underline" href="{{ route('surat-tugas.show', $surat) }}" target="_blank">{{ $surat->file_name }}</a></td><td class="px-3 py-2 text-right"><form method="POST" action="{{ route('surat-tugas.destroy', $surat) }}">@csrf @method('DELETE')<button class="text-red-600 hover:underline">Hapus</button></form></td></tr>
+                            @empty
+                                <tr><td colspan="5" class="px-3 py-6 text-center text-slate-400">Belum ada surat tugas tersimpan.</td></tr>
+                            @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
                 {{-- FORM --}}
-                <div class="relative overflow-hidden bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <div x-show="activeSection !== 'surat_tugas'" class="relative overflow-hidden bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                     <div class="relative z-10">
                         <x-perdin.form />
                     </div>
@@ -84,6 +136,10 @@
                                     class="px-4 py-2 rounded-lg bg-slate-700 text-white text-sm hover:bg-slate-800 disabled:opacity-50">
                                     <span x-show="!saving">Simpan</span>
                                     <span x-show="saving">Menyimpan...</span>
+                                </button>
+                                <button @click="nextSection()" type="button"
+                                    class="px-4 py-2 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-sm hover:bg-blue-100">
+                                    Berikutnya
                                 </button>
                                 <button @click="generateExcel()" :disabled="!perdinId"
                                     class="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-700 disabled:opacity-40">
@@ -103,7 +159,7 @@
                 </div>
 
                 {{-- PREVIEW --}}
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <div x-show="activeSection !== 'surat_tugas'" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                     <x-perdin.preview />
                 </div>
             </div>
@@ -119,30 +175,38 @@
                 messageType: 'success',
                 activeSection: 'pertanggung_jawaban',
                 sections: [{
-                        key: 'pertanggung_jawaban',
-                        label: 'Pertanggung Jawaban PERDIN'
+                        key: 'ppa',
+                        label: 'PPA PERDIN',
+                        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle></svg>'
                     },
                     {
-                        key: 'ppa',
-                        label: 'PPA PERDIN'
+                        key: 'pertanggung_jawaban',
+                        label: 'Pertanggung Jawaban PERDIN',
+                        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="12" height="16" rx="2"></rect><path d="M9 4V3a1 1 0 011-1h4a1 1 0 011 1v1"></path><path d="M9 13l2 2 4-4"></path></svg>'
                     },
                     {
                         key: 'kwitansi',
-                        label: 'Kwit PERDIN 1'
+                        label: 'Kwit PERDIN 1',
+                        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z"></path><path d="M9 8h6M9 12h6"></path></svg>'
                     },
                     {
                         key: 'rincian',
-                        label: 'Rincian PERDIN 1'
+                        label: 'Rincian PERDIN 1',
+                        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"></rect><path d="M8 7h8"></path><circle cx="9" cy="12" r=".6" fill="currentColor" stroke="none"></circle><circle cx="12" cy="12" r=".6" fill="currentColor" stroke="none"></circle><circle cx="15" cy="12" r=".6" fill="currentColor" stroke="none"></circle><circle cx="9" cy="16" r=".6" fill="currentColor" stroke="none"></circle><circle cx="12" cy="16" r=".6" fill="currentColor" stroke="none"></circle><circle cx="15" cy="16" r=".6" fill="currentColor" stroke="none"></circle></svg>'
                     },
                     {
                         key: 'dpr',
-                        label: 'DPR PERDIN'
+                        label: 'DPR PERDIN',
+                        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="6" width="12" height="14" rx="2"></rect><path d="M4 4v13a1 1 0 001 1h1"></path><path d="M11 10h6M11 14h6M11 18h3"></path></svg>'
                     },
                     {
                         key: 'pernyataan',
-                        label: 'Pernyataan'
+                        label: 'Pernyataan',
+                        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10-10-4-4L4 16v4z"></path><path d="M13 6l4 4"></path></svg>'
                     },
                 ],
+
+                suratTugasIcon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"></rect><path d="M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"></path><path d="M10 12h4"></path></svg>',
 
                 form: {
                     nomor: '',
@@ -160,6 +224,9 @@
                     nip_kabag_keuangan: '',
                     nama_mengetahui: '',
                     nama_pengaju: '',
+                    nip_pengaju: '',
+                    nama_pengaju_ppa: '',
+                    nip_pengaju_ppa: '',
                     tahun_anggaran: new Date().getFullYear().toString(),
                     nomor_bukti_kwitansi: '',
                     mak: '',
@@ -168,8 +235,14 @@
                     untuk_pembayaran: '',
                     nama_bendahara: '',
                     nip_bendahara: '',
+                    kota_bepergian: 'Jakarta',
+                    tanggal_bepergian: '',
+                    kota_lunas: 'Jakarta',
+                    tanggal_lunas: '',
                     lampiran_sppd_no: '',
                     nama_bepergian: '',
+                    nama_mengetahui_rincian: '',
+                    nip_mengetahui_rincian: '',
                     pernyataan_tidak_menggunakan_kendaraan: false,
                     pernyataan_teks: '',
                     tanggal_sppd: '',
@@ -183,7 +256,7 @@
                 showValidation: false,
 
                 travelers: [],
-                sbmTariffs: @js(config('sbm.provinces')),
+                sbmTariffs: JSON.parse(document.getElementById('sbm-config')?.dataset?.sbm || '[]'),
                 rincianItems: [],
                 dprItems: [],
                 suggestions: {
@@ -210,6 +283,7 @@
                 emptyTraveler() {
                     return {
                         nama: '',
+                        nip: '',
                         jabatan: '',
                         es: '-',
                         gol: '-',
@@ -233,6 +307,18 @@
 
                 addTraveler() {
                     this.travelers.push(this.emptyTraveler());
+                },
+                selectDprTraveler() {
+                    const traveler = this.travelers.find(item => item.nama === this.form.dpr_nama);
+                    if (!traveler) return;
+                    this.form.dpr_nip = traveler.nip || '';
+                    this.form.dpr_jabatan = traveler.jabatan || '';
+                },
+                nextSection() {
+                    const currentIndex = this.sections.findIndex(section => section.key === this.activeSection);
+                    if (currentIndex >= 0 && currentIndex < this.sections.length - 1) {
+                        this.activeSection = this.sections[currentIndex + 1].key;
+                    }
                 },
                 normalizeSbmText(value) {
                     return (value || '').toString().toLowerCase()
@@ -474,6 +560,7 @@
                             },
                             body: JSON.stringify({
                                 ...this.form,
+                                id: this.perdinId,
                                 untuk_pembayaran: this.form.untuk_pembayaran || this.form.maksud_perjalanan,
                                 travelers: this.travelers,
                                 rincian_items: this.rincianItems
@@ -499,6 +586,7 @@
 
                         this.serverValidationErrors = {};
                         this.perdinId = data.perdin.id;
+                        this.applyPerdinData(data.perdin);
                         this.showMessage('Data berhasil disimpan.');
                     } catch (e) {
                         this.showMessage('Terjadi kesalahan jaringan.', 'error');
@@ -511,9 +599,20 @@
                     const res = await fetch(`/perdin/${id}/preview`);
                     const data = await res.json();
 
+                    if (!res.ok) {
+                        this.showMessage(data.message || 'Gagal memuat data.', 'error');
+                        return;
+                    }
+
+                    this.applyPerdinData(data);
+                },
+
+                applyPerdinData(data) {
                     this.perdinId = data.id;
                     Object.keys(this.form).forEach(key => {
-                        if (key in data) this.form[key] = data[key] ?? '';
+                        if (Object.prototype.hasOwnProperty.call(data, key)) {
+                            this.form[key] = data[key] ?? (key === 'pernyataan_tidak_menggunakan_kendaraan' ? false : '');
+                        }
                     });
                     this.travelers = data.travelers?.length ? data.travelers : [this.emptyTraveler()];
                     this.travelers.forEach(traveler => {
@@ -529,6 +628,7 @@
                     this.form.dpr_nama = data.dpr_nama || data.nama_pengaju || '';
                     this.form.dpr_nip = data.dpr_nip || data.nip_pengaju || '';
                     this.form.dpr_jabatan = data.dpr_jabatan || '';
+                    this.selectDprTraveler();
                 },
 
                 async deletePerdin(id) {
@@ -649,6 +749,10 @@
                     const penginapanTotal = Number(t.penginapan || 0) * malam;
                     return uangHarianTotal + penginapanTotal + Number(t.represen || 0) +
                         Number(t.tiket || 0) + Number(t.transportasi || 0) + Number(t.sewa_kendaraan || 0);
+                },
+                kwitansiAmount() {
+                    const amount = Number(this.form.jumlah_uang_kwitansi || 0);
+                    return amount || this.travelers.reduce((total, traveler) => total + this.travelerTotal(traveler), 0);
                 },
             }
         }

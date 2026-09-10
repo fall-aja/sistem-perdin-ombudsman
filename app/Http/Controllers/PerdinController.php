@@ -23,7 +23,7 @@ class PerdinController extends Controller
      */
     public function store(StorePerdinRequest $request): JsonResponse
     {
-        $data = $request->safe()->except(['travelers', 'rincian_items', 'dpr_items']);
+        $data = $request->safe()->except(['id', 'travelers', 'rincian_items', 'dpr_items']);
 
         // jika nama_bepergian atau untuk_pembayaran tidak dikirim,
         // ambil fallback otomatis dari Nama Pengaju, traveler pertama, dan maksud perjalanan.
@@ -36,13 +36,22 @@ class PerdinController extends Controller
         $data['dpr_jabatan'] = $data['dpr_jabatan'] ?: $request->input('dpr_jabatan') ?: null;
 
         $perdin = DB::transaction(function () use ($request, $data) {
-            $perdin = Perdin::create($data);
+            $perdin = $request->filled('id')
+                ? Perdin::findOrFail($request->integer('id'))
+                : new Perdin();
+            $perdin->fill($data);
+            $perdin->save();
+
+            $perdin->travelers()->delete();
+            $perdin->rincianItems()->delete();
+            $perdin->dprItems()->delete();
 
             foreach ($request->input('travelers', []) as $i => $row) {
                 $row = collect($row)->except(['id', 'perdin_id', 'created_at', 'updated_at'])->toArray();
 
                 $row = array_merge([
                     'nama' => '',
+                    'nip' => null,
                     'jabatan' => null,
                     'es' => null,
                     'gol' => null,
@@ -94,8 +103,11 @@ class PerdinController extends Controller
             }
 
             foreach ($request->input('dpr_items', []) as $i => $row) {
+                $row = collect($row)->except(['id', 'perdin_id', 'created_at', 'updated_at'])->toArray();
+
                 $perdin->dprItems()->create([
-                    ...collect($row)->except(['id', 'perdin_id', 'created_at', 'updated_at'])->toArray(),
+                    'uraian' => $row['uraian'] ?? '',
+                    'jumlah' => $row['jumlah'] ?? 0,
                     'urutan' => $i + 1,
                 ]);
             }

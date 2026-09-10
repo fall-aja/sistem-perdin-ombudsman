@@ -27,6 +27,7 @@ class StorePerdinRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'id'                    => ['nullable', 'integer', 'exists:perdins,id'],
             // Header
             'nomor'                 => ['nullable', 'string', 'max:100'],
             'maksud_perjalanan'     => ['required', 'string'],
@@ -45,6 +46,9 @@ class StorePerdinRequest extends FormRequest
             'nip_kabag_keuangan'    => ['nullable', 'string', 'max:50'],
             'nama_mengetahui'       => ['nullable', 'string', 'max:150'],
             'nama_pengaju'          => ['nullable', 'string', 'max:150'],
+            'nip_pengaju'           => ['nullable', 'string', 'max:50'],
+            'nama_pengaju_ppa'     => ['nullable', 'string', 'max:150'],
+            'nip_pengaju_ppa'      => ['nullable', 'string', 'max:50'],
 
             // Kwitansi
             'tahun_anggaran'        => ['nullable', 'string', 'max:4'],
@@ -56,6 +60,12 @@ class StorePerdinRequest extends FormRequest
             'nama_bendahara'        => ['nullable', 'string', 'max:150'],
             'nama_bepergian'        => ['nullable', 'string', 'max:150'],
             'nip_bendahara'         => ['nullable', 'string', 'max:50'],
+            'nama_mengetahui_rincian' => ['nullable', 'string', 'max:150'],
+            'nip_mengetahui_rincian'  => ['nullable', 'string', 'max:50'],
+            'kota_bepergian'        => ['nullable', 'string', 'max:50'],
+            'tanggal_bepergian'     => ['nullable', 'date_format:Y-m'],
+            'kota_lunas'            => ['nullable', 'string', 'max:50'],
+            'tanggal_lunas'         => ['nullable', 'date_format:Y-m'],
 
             // Rincian
             'lampiran_sppd_no'      => ['nullable', 'string', 'max:100'],
@@ -75,6 +85,7 @@ class StorePerdinRequest extends FormRequest
             // Peserta (tabel dinamis)
             'travelers'                       => ['required', 'array', 'min:1'],
             'travelers.*.nama'                => ['required', 'string', 'max:150'],
+            'travelers.*.nip'                 => ['nullable', 'string', 'max:50'],
             'travelers.*.jabatan'              => ['nullable', 'string', 'max:150'],
             'travelers.*.es'                   => ['nullable', 'string', 'max:20'],
             'travelers.*.gol'                  => ['nullable', 'string', 'max:20'],

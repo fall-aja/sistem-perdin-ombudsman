@@ -35,35 +35,39 @@ return [
     'pertanggung_jawaban' => [
         'sheet' => 'pertanggung jawaban PERDIN',
 
+        // CATATAN: sheet ini 1 baris lebih "pendek" daripada PPA Perdin di
+        // blok Maksud/Surat Tugas (E10-E15, bukan E10-E16) dan di blok
+        // tanda tangan (baris 25 & 39, bukan 26 & 40) — makanya alamat
+        // cell-nya BEDA dari sheet PPA meskipun isi datanya sama persis.
         'fields' => [
             'nomor'                 => 'C3',
             'hal'                   => 'C4',
             'maksud_perjalanan'     => 'E10',
-            'surat_tugas_jabatan'   => 'E12',
-            'nomor_st'              => 'E13',
-            'tanggal_st'            => 'E14',
-            'nomor_rk'              => 'E15',
-            'pembebanan_anggaran'   => 'E16',
+            'surat_tugas_jabatan'   => 'E11',
+            'nomor_st'              => 'E12',
+            'tanggal_st'            => 'E13',
+            'nomor_rk'              => 'E14',
+            'pembebanan_anggaran'   => 'E15',
 
             // Blok tanda tangan (Disetujui / Diverifikasi / Mengetahui / Diajukan)
-            'kota_tanggal_ttd_1'    => 'A28',
-            'kota_tanggal_ttd_2'    => 'G28',
-            'kota_tanggal_ttd_3'    => 'M28',
-            'kota_tanggal_ttd_4'    => 'P28',
-            'nama_ppk'              => 'A40',
-            'nip_ppk'               => 'A41',
-            'nama_kabag_keuangan'   => 'G40',
-            'nip_kabag_keuangan'    => 'G41',
-            'nama_mengetahui'       => 'M40',
-            'nama_pengaju'          => 'P40',
+            'kota_tanggal_ttd_1'    => 'A25',
+            'kota_tanggal_ttd_2'    => 'G25',
+            'kota_tanggal_ttd_3'    => 'M25',
+            'kota_tanggal_ttd_4'    => 'P25',
+            'nama_ppk'              => 'A39',
+            'nip_ppk'               => 'A40',
+            'nama_kabag_keuangan'   => 'G39',
+            'nip_kabag_keuangan'    => 'G40',
+            'nama_mengetahui'       => 'M39',
+            'nama_pengaju'          => 'P39',
         ],
 
         'prefix_fields' => ['hal'],
 
         'table' => [
-            'start_row' => 21,
-            'style_row' => 21,
-            'total_row' => 23, // baris "Jumlah"
+            'start_row' => 20,
+            'style_row' => 20,
+            'total_row' => 22, // baris "Jumlah"
             'columns' => [
                 'no'             => 'A',
                 'nama'           => 'B',
@@ -102,16 +106,22 @@ return [
             'nomor_rk'              => 'E15',
             'pembebanan_anggaran'   => 'E16',
 
-            'kota_tanggal_ttd_1'    => 'A28',
-            'kota_tanggal_ttd_2'    => 'F28',
-            'kota_tanggal_ttd_3'    => 'M28',
-            'kota_tanggal_ttd_4'    => 'P28',
+            'kota_tanggal_ttd_1'    => 'A26',
+            'kota_tanggal_ttd_2'    => 'F26',
+            'kota_tanggal_ttd_3'    => 'M26',
+            'kota_tanggal_ttd_4'    => 'P26',
             'nama_ppk'              => 'A40',
             'nip_ppk'               => 'A41',
             'nama_kabag_keuangan'   => 'F40',
             'nip_kabag_keuangan'    => 'F41',
             'nama_mengetahui'       => 'M40',
             'nama_pengaju'          => 'P40',
+
+            // Kotak "Catatan: Kolom yang mengajukan sesuai Jabatan
+            // (Sesuai dgn SBU TA 2026)" — dulu belum ada di mapping ini
+            // jadi walaupun sudah diisi di web, gak pernah nyampe ke Excel.
+            'nama_pengaju_ppa'      => 'A56',
+            'nip_pengaju_ppa'       => 'A57',
         ],
 
         'prefix_fields' => ['hal'],
@@ -156,7 +166,11 @@ return [
             'jumlah_uang'         => 'D13',
             'terbilang'           => 'D14', // auto dari angka_ke_terbilang()
             'untuk_pembayaran'    => 'D17',
-            'kota_tanggal_ttd'    => 'G24',
+            // "Jakarta, ... " di baris Yang bepergian (G24) dan "Dibayar
+            // lunas, Tgl ..." (H37) sekarang dua field terpisah, supaya
+            // tanggal bepergian & tanggal lunas bisa beda-beda.
+            'kota_tanggal_bepergian' => 'G24',
+            'kota_tanggal_lunas'     => 'H37',
             'nama_yang_bepergian' => 'G34',
             'nama_ppk'            => 'A47',
             'nip_ppk'             => 'A48',
@@ -175,9 +189,15 @@ return [
             'lampiran_sppd_no' => 'E10',
             'tanggal_sppd'     => 'E11',
             'kota_tanggal_ttd' => 'G32',
-            'nama_bendahara'   => 'A43',
-            'nip_bendahara'    => 'A44',
-            'nama_bepergian'   => 'G43',
+            // A42/G42 sudah berisi teks label "Nama" di template — nilainya
+            // harus MENIMPA cell itu juga (bukan cell di bawahnya / A43,
+            // G43), kalau tidak nama yang diisi malah nongol di bawah
+            // tulisan "Nama" bukan menggantikannya.
+            'nama_bendahara'   => 'A42',
+            'nip_bendahara'    => 'A43',
+            'nama_bepergian'   => 'G42',
+            'nama_mengetahui_rincian' => 'F56',
+            'nip_mengetahui_rincian'  => 'F57',
         ],
 
         // Cell ini SUDAH berisi formula terbilang & jumlah pada template.

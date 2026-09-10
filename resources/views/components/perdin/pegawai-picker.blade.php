@@ -12,9 +12,9 @@
         field-id-expr="'ppk'"
     />
 --}}
-@props(['label', 'namaModel', 'nipModel' => null, 'jabatanModel' => null, 'fieldIdExpr', 'fieldName' => null, 'fieldNameExpr' => null])
+@props(['label', 'namaModel', 'nipModel' => null, 'jabatanModel' => null, 'fieldIdExpr', 'fieldName' => null, 'fieldNameExpr' => null, 'inline' => false])
 
-<div>
+<div class="{{ $inline ? 'grid grid-cols-1 gap-3 sm:grid-cols-2' : '' }}">
     <div class="relative" x-data="{ get fid() { return {{ $fieldIdExpr }}; }, fieldNameRaw: {{ $fieldName !== null ? "'" . $fieldName . "'" : 'null' }}, fieldNameExpr: {{ $fieldNameExpr !== null ? $fieldNameExpr : 'null' }}, get fieldName() {
                 if (this.fieldNameExpr) {
                     return this.fieldNameExpr;
@@ -63,7 +63,7 @@
     </div>
 
     @if($nipModel)
-        <div class="mt-2">
+        <div class="{{ $inline ? '' : 'mt-2' }}">
             <label class="text-xs font-medium text-slate-500">NIP</label>
             <input
                 type="text"

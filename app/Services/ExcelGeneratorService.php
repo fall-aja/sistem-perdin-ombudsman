@@ -4,8 +4,10 @@ namespace App\Services;
 
 use App\Models\Perdin;
 use App\Models\PerdinSheetTemplate;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Illuminate\Support\Carbon;
 
@@ -94,6 +96,7 @@ class ExcelGeneratorService
             'tanggal_st'          => $this->formatTanggal($perdin->tanggal_st),
             'nomor_rk'            => $perdin->nomor_rk,
             'pembebanan_anggaran' => $perdin->pembebanan_anggaran,
+            'kota_tanggal_ttd_top' => $kotaTanggal,
             'kota_tanggal_ttd_1'  => $kotaTanggal,
             'kota_tanggal_ttd_2'  => $kotaTanggal,
             'kota_tanggal_ttd_3'  => $kotaTanggal,
@@ -132,6 +135,7 @@ class ExcelGeneratorService
             'tanggal_st'          => $this->formatTanggal($perdin->tanggal_st),
             'nomor_rk'            => $perdin->nomor_rk,
             'pembebanan_anggaran' => $perdin->pembebanan_anggaran,
+            'kota_tanggal_ttd_top' => $kotaTanggal,
             'kota_tanggal_ttd_1'  => $kotaTanggal,
             'kota_tanggal_ttd_2'  => $kotaTanggal,
             'kota_tanggal_ttd_3'  => $kotaTanggal,
@@ -142,6 +146,8 @@ class ExcelGeneratorService
             'nip_kabag_keuangan'  => $this->formatNip($perdin->nip_kabag_keuangan),
             'nama_mengetahui'     => $perdin->nama_mengetahui,
             'nama_pengaju'        => $perdin->nama_pengaju,
+            'nama_pengaju_ppa'    => $perdin->nama_pengaju_ppa,
+            'nip_pengaju_ppa'     => $this->formatNip($perdin->nip_pengaju_ppa),
         ]);
 
         $this->fillTravelerTable($sheet, $cfg['table'], $perdin);
@@ -170,7 +176,11 @@ class ExcelGeneratorService
             'jumlah_uang'         => $jumlah,
             'terbilang'           => ucfirst(TerbilangService::rupiah($jumlah)),
             'untuk_pembayaran'    => $perdin->untuk_pembayaran ?: $this->sheetText('kwitansi', 'teks_awalan', $perdin, (string) $perdin->maksud_perjalanan),
-            'kota_tanggal_ttd'    => $this->formatKotaTanggal($perdin),
+            // Tanggal "Yang bepergian" & "Dibayar lunas" sekarang punya
+            // kota/bulan/tahun sendiri-sendiri (tidak lagi ikut kota/tanggal
+            // tanda tangan yang dipakai sheet lain).
+            'kota_tanggal_bepergian' => $this->formatKotaTanggalCustom($perdin->kota_bepergian, $perdin->tanggal_bepergian),
+            'kota_tanggal_lunas'     => $this->formatKotaTanggalCustom($perdin->kota_lunas, $perdin->tanggal_lunas, 'Dibayar lunas, Tgl '),
             'nama_yang_bepergian' => $perdin->nama_bepergian ?: $pemohon?->nama,
             'nama_ppk'            => $perdin->nama_ppk,
             'nip_ppk'             => $this->formatNip($perdin->nip_ppk),
@@ -195,9 +205,12 @@ class ExcelGeneratorService
             'lampiran_sppd_no' => $perdin->lampiran_sppd_no,
             'tanggal_sppd'     => $this->formatTanggal($perdin->tanggal_sppd),
             'kota_tanggal_ttd' => $this->formatKotaTanggal($perdin),
+            'telah_menerima_uang' => '=+F29',
             'nama_bendahara'   => $perdin->nama_bendahara,
             'nip_bendahara'    => $this->formatNip($perdin->nip_bendahara),
             'nama_bepergian'   => $perdin->nama_bepergian ?: $perdin->travelers->first()?->nama,
+            'nama_mengetahui_rincian' => $perdin->nama_mengetahui_rincian,
+            'nip_mengetahui_rincian'  => $this->formatNip($perdin->nip_mengetahui_rincian),
         ]);
 
         $table = $cfg['table'];
@@ -236,7 +249,10 @@ class ExcelGeneratorService
 
         $this->writeFields($sheet, $cfg, [
             'nama'             => $perdin->dpr_nama,
-            'nip'              => $this->formatNip($perdin->dpr_nip),
+            // Cell F12 udah punya label "NIP" terpisah di B12, jadi NIP-nya
+            // ditulis polos aja (gak pake prefix "NIP." dari formatNip(),
+            // biar gak dobel jadi "NIP : NIP. ...").
+            'nip'              => $perdin->dpr_nip,
             'jabatan'          => $perdin->dpr_jabatan,
             'tanggal_spd_text' => $this->sheetText('dpr', 'teks_awalan', $perdin, 'Berdasarkan Surat Perjalanan Dinas (SPD) tanggal ' . $this->formatTanggal($perdin->tanggal_spd, 'd F Y')),
             'nomor_spd'        => $this->sheetText('dpr', 'teks_penutup', $perdin, 'Nomor : ' . $perdin->nomor_spd . ', dengan ini kami menyatakan dengan sesungguhnya bahwa:'),
@@ -248,15 +264,31 @@ class ExcelGeneratorService
 
         $table = $cfg['table'];
         $rows = $perdin->dprItems;
-        $startRow = $this->ensureRowCapacity($sheet, $table, $rows->count())['start_row'];
+        $capacity = $this->ensureRowCapacity($sheet, $table, $rows->count());
+        $startRow = $capacity['start_row'];
+        $totalRow = $capacity['total_row'];
+
+        $totalJumlah = 0.0;
 
         foreach ($rows as $index => $item) {
             $row = $startRow + $index;
             $columns = $table['columns'];
 
+            $jumlah = $item->jumlah ? (float) $item->jumlah : 0.0;
+
             $sheet->setCellValue($columns['no'] . $row, $index + 1);
             $sheet->setCellValue($columns['uraian'] . $row, $item->uraian);
-            $sheet->setCellValue($columns['jumlah'] . $row, $item->jumlah ? (float) $item->jumlah : 0);
+            $sheet->setCellValue($columns['jumlah'] . $row, $jumlah);
+
+            $totalJumlah += $jumlah;
+        }
+
+        // G34 (baris "JUMLAH", posisi bisa turun kalau baris disisipkan)
+        // gak ada formula SUM di template, jadi ditulis manual dari total
+        // yang barusan dihitung. Terbilang (F35) otomatis ngikut karena
+        // formulanya baca dari cell ini.
+        if ($rows->count() > 0 && $totalRow) {
+            $sheet->setCellValue($table['columns']['jumlah'] . $totalRow, $totalJumlah);
         }
     }
 
@@ -287,18 +319,15 @@ class ExcelGeneratorService
         ]);
 
         $table = $cfg['table'];
-        $travelers = $perdin->travelers;
-        $startRow = $this->ensureRowCapacity($sheet, $table, $travelers->count())['start_row'];
-
-        $sums = [
-            'uang_harian' => 0.0,
-            'penginapan' => 0.0,
-            'represen' => 0.0,
-            'tiket' => 0.0,
-            'transportasi' => 0.0,
-            'sewa_kendaraan' => 0.0,
-            'jumlah' => 0.0,
-        ];
+        // Kotak tabel Pernyataan cuma didesain untuk 2 orang (lihat catatan
+        // 'max_rows' di config/perdin.php) — kalau dibiarkan menulis semua
+        // peserta, baris tambahan bakal tanpa border/style dan nabrak teks
+        // "Melakukan Perjalanan Dinas ke ..." di B15. Jadi dipotong di sini,
+        // TIDAK ikut ensureRowCapacity() (yang dipakai sheet lain buat
+        // nambah baris otomatis).
+        $maxRows = $cfg['max_rows'] ?? null;
+        $travelers = $maxRows ? $perdin->travelers->take($maxRows) : $perdin->travelers;
+        $startRow = $table['start_row'];
 
         foreach ($travelers as $index => $traveler) {
             $row = $startRow + $index;
@@ -342,13 +371,6 @@ class ExcelGeneratorService
     }
 
     /**
-     * Isi tabel peserta (dipakai sheet Pertanggungjawaban & PPA) termasuk
-     * menambah baris baru jika peserta lebih banyak dari baris yang tersedia
-     * di template, sambil mempertahankan border/format lewat duplicateStyle().
-     */
-    
-
-    /**
      * Pastikan tabel dinamis punya cukup baris untuk $needed data.
      * Kalau template hanya punya 2 baris kosong tapi butuh 5, sistem akan
      * menyisipkan baris baru sebelum baris total sambil menduplikasi gaya
@@ -370,16 +392,48 @@ class ExcelGeneratorService
         if ($needed > $existingCapacity && $totalRow) {
             $rowsToAdd = $needed - $existingCapacity;
 
+            // Kumpulkan dulu cell yang di-merge di style_row (mis. Nama = B:D,
+            // Jabatan = E:G), supaya baris baru ikut di-merge sama persis —
+            // kalau tidak, kolomnya kelihatan "pecah"/berantakan.
+            $mergesInStyleRow = [];
+            foreach ($sheet->getMergeCells() as $mergeRange) {
+                [$mergeStart, $mergeEnd] = explode(':', $mergeRange);
+                $startCoord = Coordinate::coordinateFromString($mergeStart);
+                $endCoord = Coordinate::coordinateFromString($mergeEnd);
+                if ((int) $startCoord[1] === $styleRow && (int) $endCoord[1] === $styleRow) {
+                    $mergesInStyleRow[] = [$startCoord[0], $endCoord[0]];
+                }
+            }
+
             // Sisipkan baris baru TEPAT SEBELUM baris total, PhpSpreadsheet
             // otomatis menggeser & menyesuaikan referensi formula (mis. SUM).
             $sheet->insertNewRowBefore($totalRow, $rowsToAdd);
 
+            $startColIndex = Coordinate::columnIndexFromString('A');
+            $endColIndex = Coordinate::columnIndexFromString($this->lastColumn($table));
+
             for ($i = 0; $i < $rowsToAdd; $i++) {
                 $targetRow = $totalRow + $i;
-                $sheet->duplicateStyle(
-                    $sheet->getStyle('A' . $styleRow . ':' . $this->lastColumn($table) . $styleRow),
-                    'A' . $targetRow . ':' . $this->lastColumn($table) . $targetRow
-                );
+
+                // duplicateStyle() cuma boleh dikasih Style dari SATU cell —
+                // kalau dikasih range ('A21:U21'), PhpSpreadsheet diam-diam
+                // cuma makai gaya cell PALING KIRI (kolom A) buat SEMUA
+                // kolom, jadi format angka/border kolom lain (mis. kolom
+                // Penginapan) ikut ketimpa jadi General. Makanya harus
+                // di-duplicate per kolom satu-satu.
+                for ($col = $startColIndex; $col <= $endColIndex; $col++) {
+                    $colLetter = Coordinate::stringFromColumnIndex($col);
+                    $sheet->duplicateStyle(
+                        $sheet->getStyle($colLetter . $styleRow),
+                        $colLetter . $targetRow
+                    );
+                }
+
+                // Re-create merge cell (Nama, Jabatan, dst.) di baris baru.
+                foreach ($mergesInStyleRow as [$colStart, $colEnd]) {
+                    $sheet->mergeCells($colStart . $targetRow . ':' . $colEnd . $targetRow);
+                }
+
                 $sheet->getRowDimension($targetRow)->setRowHeight(
                     $sheet->getRowDimension($styleRow)->getRowHeight()
                 );
@@ -448,24 +502,35 @@ class ExcelGeneratorService
             $sewa_kendaraan = $traveler->sewa_kendaraan ? (float) $traveler->sewa_kendaraan : 0.0;
 
             $sheet->setCellValue($columns['hari'] . $row, $hari);
-            $sheet->setCellValue($columns['uang_harian'] . $row, $uang_harian);
-            $sheet->setCellValue($columns['penginapan'] . $row, $penginapan);
+            // Kolom "Uang Harian" di Excel = tarif per hari x jumlah hari
+            // (persis kayak angka "Total" yang muncul di web).
+            $sheet->setCellValue($columns['uang_harian'] . $row, $uang_harian * $hari);
+            // Kolom "Penginapan" di Excel = tarif per malam x jumlah malam
+            // (hari - 1), persis kayak "Total" yang muncul di web & kolom
+            // Uang Harian.
+            $nights = max($hari - 1, 0);
+            $sheet->setCellValue($columns['penginapan'] . $row, $penginapan * $nights);
             $sheet->setCellValue($columns['represen'] . $row, $represen);
             $sheet->setCellValue($columns['tiket'] . $row, $tiket);
             $sheet->setCellValue($columns['transportasi'] . $row, $transportasi);
             $sheet->setCellValue($columns['sewa_kendaraan'] . $row, $sewa_kendaraan);
 
-            $nights = max($hari - 1, 0);
             $rowTotal = ($uang_harian * $hari) + ($penginapan * $nights) + $represen + $tiket + $transportasi + $sewa_kendaraan;
             $sheet->setCellValue($columns['jumlah'] . $row, $rowTotal);
 
-            $sums['uang_harian'] += $uang_harian;
+            $sums['uang_harian'] += ($uang_harian * $hari);
             $sums['penginapan'] += ($penginapan * $nights);
             $sums['represen'] += $represen;
             $sums['tiket'] += $tiket;
             $sums['transportasi'] += $transportasi;
             $sums['sewa_kendaraan'] += $sewa_kendaraan;
             $sums['jumlah'] += $rowTotal;
+
+            // Semua isi baris di-tengahkan (horizontal & vertikal).
+            $sheet->getStyle($columns['no'] . $row . ':' . $this->lastColumn($table) . $row)
+                ->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                ->setVertical(Alignment::VERTICAL_CENTER);
         }
 
         if ($totalRow && $travelers->count() > 0) {
@@ -475,12 +540,17 @@ class ExcelGeneratorService
             }
 
             $sheet->setCellValue($columns['nama'] . $totalRow, 'Jumlah = ' . $travelers->count() . ' Orang');
+
+            $sheet->getStyle($columns['no'] . $totalRow . ':' . $this->lastColumn($table) . $totalRow)
+                ->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                ->setVertical(Alignment::VERTICAL_CENTER);
         }
     }
 
     protected function formatTanggal(?Carbon $tanggal, string $format = 'd F Y'): ?string
     {
-        return $tanggal?->translatedFormat($format);
+        return $tanggal?->locale('id')->translatedFormat($format);
     }
 
     protected function formatKotaTanggal(Perdin $perdin): string
@@ -488,7 +558,26 @@ class ExcelGeneratorService
         $kota = $perdin->kota_tanda_tangan ?: 'Jakarta';
         $tanggal = $perdin->tanggal_tanda_tangan ?? now();
 
-        return $kota . ', ' . $tanggal->translatedFormat('F Y');
+        return $kota . ', ' . $tanggal->locale('id')->translatedFormat('F Y');
+    }
+
+    /**
+     * Sama seperti formatKotaTanggal(), tapi kota & tanggalnya dikasih
+     * langsung (dipakai buat field yang punya kota/tanggal sendiri di luar
+     * "Kota/Bulan Tanda Tangan" umum, mis. tanggal Bepergian & Dibayar
+     * Lunas di Kwitansi). $prefix opsional ditaruh di depan (mis. "Dibayar
+     * lunas, Tgl ").
+     */
+    protected function formatKotaTanggalCustom(?string $kota, $tanggal, string $prefix = ''): string
+    {
+        $kota = $kota ?: 'Jakarta';
+        $tanggal = $tanggal ?: now();
+
+        if (is_string($tanggal)) {
+            $tanggal = Carbon::parse($tanggal);
+        }
+
+        return $prefix . $kota . ', ' . $tanggal->locale('id')->translatedFormat('F Y');
     }
 
     protected function formatNip(?string $nip): ?string

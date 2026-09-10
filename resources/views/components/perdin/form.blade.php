@@ -41,9 +41,13 @@
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div>
-            <label class="text-xs font-medium text-slate-500">Surat Tugas (Jabatan)</label>
-            <input type="text" x-model="form.surat_tugas_jabatan" placeholder="Anggota Ombudsman RI"
-                class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
+            <label for="surat-tugas-jabatan" class="text-xs font-medium text-slate-500">Surat Tugas (Jabatan)</label>
+            <select id="surat-tugas-jabatan" x-model="form.surat_tugas_jabatan"
+                class="mt-1 w-full rounded-lg border border-slate-300 bg-white text-sm px-3 py-2">
+                <option value="">-- Pilih jabatan --</option>
+                <option value="Anggota Ombudsman RI">Anggota Ombudsman RI</option>
+                <option value="Wakil Ketua Ombudsman RI">Wakil Ketua Ombudsman RI</option>
+            </select>
         </div>
         <div>
             <label class="text-xs font-medium text-slate-500">Nomor Surat Tugas</label>
@@ -75,7 +79,7 @@
                 class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
         </div>
         <div>
-            <label class="text-xs font-medium text-slate-500">Tanggal Tanda Tangan</label>
+            <label class="text-xs font-medium text-slate-500">Bulan Tanda Tangan</label>
             <input type="month" x-model="form.tanggal_tanda_tangan"
                 class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
         </div>
@@ -83,13 +87,14 @@
 
     <h4 class="font-medium text-sm pt-3 border-t border-slate-200">Daftar Peserta</h4>
     <template x-for="(t, i) in travelers" :key="i">
-        <div class="mb-4 border border-slate-200 rounded-lg p-4 space-y-3 relative bg-slate-50/50">
+        <div class="mb-10 border border-slate-300 rounded-lg p-4 space-y-3 relative bg-slate-50/50 shadow-sm">
             <button type="button" @click="removeTraveler(i)" class="absolute top-3 right-3 text-red-500 text-xs hover:underline">Hapus</button>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <x-perdin.pegawai-picker
                     label="Nama"
                     nama-model="t.nama"
+                    nip-model="t.nip"
                     jabatan-model="t.jabatan"
                     field-id-expr="'traveler-nama-' + i"
                     field-name="travelers.${i}.nama" />
@@ -159,7 +164,7 @@
                     </div>
                     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <div><label class="text-sm font-medium text-slate-700">SBM Penginapan</label>
-                            <div class="mt-1 flex min-h-[42px] items-center rounded-lg border border-blue-200 bg-white px-3 text-sm text-slate-700 shadow-sm" x-text="t.sbm_provinsi || 'Pilih provinsi pada SBM Uang Harian'"></div>
+                            <div class="mt-1 flex min-h-[42px] items-center rounded-lg border border-blue-200 bg-transparent px-3 text-sm text-slate-700 shadow-sm" x-text="t.sbm_provinsi || 'Pilih provinsi pada SBM Uang Harian'"></div>
                         </div>
                         <div><label class="text-sm font-medium text-slate-700">SBM per malam</label>
                             <div class="mt-1 flex min-h-[42px] items-center rounded-lg border border-blue-200 bg-white px-3 text-sm font-semibold text-slate-800 shadow-sm" x-text="sbmTariff(t) ? formatRupiah(sbmTariff(t).hotel[t.sbm_hotel_kelas]) : 'Rp. -'"></div>
@@ -167,10 +172,18 @@
                     </div>
                     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <div><label class="text-sm font-medium text-slate-700">SBM Tiket</label>
-                            <div class="mt-1 flex min-h-[42px] items-center rounded-lg border border-blue-200 bg-white px-3 text-sm text-slate-700 shadow-sm" x-text="t.sbm_provinsi || 'Pilih provinsi pada SBM Uang Harian'"></div>
+                            <div class="mt-1 flex min-h-[42px] items-center rounded-lg border border-blue-200 bg-white px-3 text-sm font-semibold text-slate-800 shadow-sm" x-text="t.sbm_provinsi || 'Pilih provinsi pada SBM Uang Harian'"></div>
                         </div>
-                        <div><label class="text-sm font-medium text-slate-700">SBM Tiket</label>
-                            <div class="relative mt-1"><span class="absolute inset-y-0 left-3 flex items-center text-sm text-slate-500">Rp.</span><input type="number" x-model.number="t.tiket" min="0" placeholder="0" class="w-full rounded-lg border border-blue-200 bg-white py-2.5 pl-10 pr-3 text-sm font-semibold text-slate-800 shadow-sm"></div>
+                        <div><label class="text-sm font-medium text-slate-700">Nilai Tiket</label>
+                            <div class="mt-1 flex min-h-[42px] items-center rounded-lg border border-blue-200 bg-white px-3 text-sm font-semibold text-slate-800 shadow-sm" x-text="t.tiket ? formatRupiah(Number(t.tiket || 0)) : 'Rp. -'"></div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div><label class="text-sm font-medium text-slate-700">Asal Kota</label>
+                            <input type="text" x-model="t.dari" list="kotaList" class="mt-1 w-full rounded-lg border border-blue-200 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm">
+                        </div>
+                        <div><label class="text-sm font-medium text-slate-700">Tujuan (Pakai Pilihan)</label>
+                            <input type="text" x-model="t.ke" @change="setSbmProvinceFromDestination(t)" list="kotaList" placeholder="Ketik untuk cari kota..." class="mt-1 w-full rounded-lg border border-blue-200 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm">
                         </div>
                     </div>
                 </div>
@@ -208,12 +221,15 @@
                 </div>
                 <div>
                     <label class="text-xs font-medium text-slate-500">Tiket (opsional)</label>
-                    <div class="mt-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700" x-text="t.tiket ? formatRupiah(Number(t.tiket || 0)) : 'Belum diisi'"></div>
-                    <div class="text-xs text-slate-500 mt-1">Diisi pada panel Tarif SBM.</div>
+                    <input type="number" x-model.number="t.tiket" min="0" placeholder="0" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
                 </div>
                 <div>
                     <label class="text-xs font-medium text-slate-500">Transport</label>
-                    <input type="number" x-model.number="t.transportasi" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
+                    <div class="mt-1 grid grid-cols-2 gap-2">
+                        <div class="rounded-lg border border-slate-200 bg-slate-50 px-2 py-2 text-xs text-slate-600 truncate" x-text="t.dari || 'Asal -'"></div>
+                        <div class="rounded-lg border border-slate-200 bg-slate-50 px-2 py-2 text-xs text-slate-600 truncate" x-text="t.ke || 'Tujuan -'"></div>
+                    </div>
+                    <input type="number" x-model.number="t.transportasi" placeholder="Harga transport" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
                 </div>
                 <div>
                     <label class="text-xs font-medium text-slate-500">Sewa Kendaraan</label>
@@ -232,6 +248,11 @@
         <x-perdin.pegawai-picker label="Nama Kabag Keuangan" nama-model="form.nama_kabag_keuangan" nip-model="form.nip_kabag_keuangan" field-id-expr="'kabag'" field-name="nama_kabag_keuangan" />
         <x-perdin.pegawai-picker label="Nama (Mengetahui)" nama-model="form.nama_mengetahui" field-id-expr="'mengetahui'" field-name="nama_mengetahui" />
         <x-perdin.pegawai-picker label="Nama Pengaju" nama-model="form.nama_pengaju" nip-model="form.nip_pengaju" jabatan-model="form.dpr_jabatan" field-id-expr="'pengaju'" field-name="nama_pengaju" />
+    </div>
+
+    <div x-show="activeSection === 'ppa'" x-cloak>
+        <h5 class="text-xs font-semibold text-slate-500 mt-2">Catatan: Kolom yang mengajukan sesuai Jabatan</h5>
+        <x-perdin.pegawai-picker label="(Sesuai dgn SBU TA 2026)" nama-model="form.nama_pengaju_ppa" nip-model="form.nip_pengaju_ppa" field-id-expr="'pengaju_ppa'" field-name="nama_pengaju_ppa" :inline="true" />
     </div>
 </div>
 
@@ -266,15 +287,48 @@
         <div>
             <label class="text-xs font-medium text-slate-500">Jumlah Uang (Rp)</label>
             <input type="number" x-model.number="form.jumlah_uang_kwitansi" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
-            <p class="text-xs text-slate-400 mt-1">Kosongkan untuk otomatis dari total biaya peserta.</p>
+            <p class="mt-1 text-sm font-semibold text-emerald-700" x-text="'Nilai aktif: ' + formatRupiah(kwitansiAmount())"></p>
+            <p class="text-xs text-slate-400 mt-1">Kosongkan atau pilih nama untuk mengambil total biaya peserta.</p>
         </div>
         <div>
             <label class="text-xs font-medium text-slate-500">Untuk Pembayaran</label>
             <textarea x-model="form.untuk_pembayaran" rows="2" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2" placeholder="Untuk pembayaran ..."></textarea>
         </div>
     </div>
-    <div class="grid grid-cols-2 gap-3">
-        <x-perdin.pegawai-picker label="Nama Bendahara" nama-model="form.nama_bendahara" nip-model="form.nip_bendahara" field-id-expr="'bendahara'" field-name="nama_bendahara" />
+    <div>
+        <label class="text-xs font-medium text-slate-500">Nama Bepergian</label>
+        <select x-model="form.nama_bepergian" @change="const trv = travelers.find(x => x.nama === form.nama_bepergian); if (trv) { form.jumlah_uang_kwitansi = travelerTotal(trv); }" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2 bg-white">
+            <option value="">-- Pilih nama peserta --</option>
+            <template x-for="(t, i) in travelers" :key="i">
+                <option :value="t.nama" x-text="t.nama || '(belum diisi nama)'"></option>
+            </template>
+        </select>
+        <p class="text-xs text-slate-400 mt-1">Pilih dari daftar Peserta. Jumlah Uang otomatis terisi dari total biaya orang tsb.</p>
+    </div>
+    <div>
+        <x-perdin.pegawai-picker label="Nama Bendahara" nama-model="form.nama_bendahara" nip-model="form.nip_bendahara" field-id-expr="'bendahara'" field-name="nama_bendahara" :inline="true" />
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-slate-200">
+        <div>
+            <label class="text-xs font-medium text-slate-500">Kota Bepergian</label>
+            <input type="text" x-model="form.kota_bepergian" list="kotaList"
+                class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
+        </div>
+        <div>
+            <label class="text-xs font-medium text-slate-500">Bulan Bepergian</label>
+            <input type="month" x-model="form.tanggal_bepergian"
+                class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+            <label class="text-xs font-medium text-slate-500">Bulan Dibayar Lunas</label>
+            <input type="month" x-model="form.tanggal_lunas"
+                class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
+        </div>
+        <p class="text-xs text-slate-400 sm:col-span-2 -mt-1">Muncul di baris "Dibayar lunas, Tgl ... ".</p>
     </div>
 </div>
 
@@ -299,6 +353,11 @@
             <label class="text-xs font-medium text-slate-500">&nbsp;</label>
             <div class="text-xs text-slate-400">Nama yang Bepergian akan muncul di bawah Rincian.</div>
         </div>
+    </div>
+
+    <div>
+        <x-perdin.pegawai-picker label="Nama (Mengetahui/Menyetujui)" nama-model="form.nama_mengetahui_rincian" nip-model="form.nip_mengetahui_rincian" field-id-expr="'mengetahui_rincian'" field-name="nama_mengetahui_rincian" :inline="true" />
+        <p class="text-xs text-slate-400 mt-1">Muncul di bagian bawah sheet Rincian, kolom "Mengetahui/Menyetujui".</p>
     </div>
 
     <template x-for="(r, i) in rincianItems" :key="i">
@@ -333,13 +392,18 @@
                 <input type="text" x-model="r.keterangan" placeholder="mis. Transport, hotel, dll." class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
             </div>
         </div>
-</div>
-</template>
-<button type="button" @click="addRincianItem()" class="text-sm text-blue-600 font-medium hover:underline">+ Tambah Rincian</button>
-<div class="mt-4">
-    <x-perdin.pegawai-picker label="Nama yang Bepergian (untuk Rincian)" nama-model="form.nama_bepergian" field-id-expr="'nama_bepergian'" field-name="nama_bepergian" />
-    <p class="text-xs text-slate-400 mt-1">Pilih pegawai dari daftar atau ketik untuk mencari. Jika kosong, akan mengikuti Nama Pengaju secara otomatis.</p>
-</div>
+    </template>
+    <button type="button" @click="addRincianItem()" class="text-sm text-blue-600 font-medium hover:underline">+ Tambah Rincian</button>
+    <div class="mt-4">
+        <label class="text-xs font-medium text-slate-500">Nama yang Bepergian (untuk Rincian)</label>
+        <select x-model="form.nama_bepergian" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+            <option value="">-- Pilih nama peserta --</option>
+            <template x-for="(t, i) in travelers" :key="'rincian-traveler-' + i">
+                <option :value="t.nama" x-text="(t.nama || '(belum diisi nama)') + (t.nip ? ' - ' + t.nip : '')"></option>
+            </template>
+        </select>
+        <p class="mt-1 text-xs text-slate-400">Daftar diambil dari peserta Pertanggungjawaban/PPA.</p>
+    </div>
 </div>
 
 {{-- ================= DPR ================= --}}
@@ -352,11 +416,22 @@
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-            <x-perdin.pegawai-picker label="Nama (DPR)" nama-model="form.dpr_nama" nip-model="form.dpr_nip" jabatan-model="form.dpr_jabatan" field-id-expr="'dpr'" field-name="dpr_nama" />
+            <label class="text-xs font-medium text-slate-500">Nama (DPR)</label>
+            <select x-model="form.dpr_nama" @change="selectDprTraveler()" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2 bg-white">
+                <option value="">-- Pilih nama peserta --</option>
+                <template x-for="(t, i) in travelers" :key="i">
+                    <option :value="t.nama" x-text="t.nama || '(belum diisi nama)'"></option>
+                </template>
+            </select>
+            <p class="text-xs text-slate-400 mt-1">Pilih dari daftar Peserta, sama kayak "Nama Bepergian" di Kwitansi.</p>
+        </div>
+        <div>
+            <label class="text-xs font-medium text-slate-500">NIP</label>
+            <input type="text" x-model="form.dpr_nip" placeholder="Terisi otomatis dari peserta" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
         </div>
         <div>
             <label class="text-xs font-medium text-slate-500">Nomor SPD</label>
-            <input type="text" x-model="form.nomor_spd" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
+            <input type="text" x-model="form.nomor_spd" x-effect="if (!form.nomor_spd) form.nomor_spd = form.nomor_st" placeholder="Otomatis ngikut Nomor ST, bisa diedit" class="mt-1 w-full rounded-lg border border-slate-300 text-sm px-3 py-2">
         </div>
         <div>
             <label class="text-xs font-medium text-slate-500">Tanggal SPD</label>
