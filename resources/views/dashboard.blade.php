@@ -8,34 +8,34 @@
     <div x-data="perdinApp()" x-init="init()" x-cloak class="min-h-screen">
 
         {{-- SIDEBAR --}}
-        <aside class="fixed inset-y-0 left-0 z-30 flex w-64 flex-col overflow-hidden border-r border-slate-700 bg-slate-900 text-slate-200 shadow-xl shadow-slate-950/20">
-            <div class="border-b border-slate-700 p-5">
+        <aside class="pd-sidebar fixed inset-y-0 left-0 z-30 flex w-64 flex-col overflow-hidden border-r text-slate-200 shadow-xl shadow-slate-950/20">
+            <div class="pd-sidebar-brand border-b p-5">
                 <div class="flex items-center gap-3">
                     <img src="/images/ori_square.png" alt="Logo ORI" class="w-9 h-9 rounded-lg object-contain bg-white p-1">
                     <div>
-                        <h1 class="font-bold text-lg leading-tight">Sistem PERDIN</h1>
-                        <p class="text-xs text-slate-400">Ombudsman RI</p>
+                        <h1 class="font-serif font-semibold text-lg leading-tight text-white">Sistem PERDIN</h1>
+                        <p class="text-xs" style="color: rgba(169,184,201,.7)">Ombudsman RI</p>
                     </div>
                 </div>
             </div>
 
-            <nav class="m-3 space-y-1 rounded-xl border border-slate-700/90 bg-slate-800/35 p-2 shadow-inner shadow-slate-950/20">
-                <div class="px-3 pb-2 text-xs uppercase tracking-wide text-slate-500">Menu Utama</div>
+            <nav class="pd-sidebar-nav m-3 space-y-1 rounded-xl border p-2">
+                <div class="pd-sidebar-eyebrow px-3 pb-2 text-xs">Menu Utama</div>
                 <template x-for="section in sections" :key="section.key">
                     <button
                         @click="activeSection = section.key"
                         class="flex w-full items-center justify-between rounded-lg border border-transparent px-3 py-2 text-left text-sm transition"
-                        :class="activeSection === section.key ? 'border-blue-400/60 bg-blue-600 text-white shadow-sm' : 'hover:border-slate-600 hover:bg-slate-800'">
+                        :class="activeSection === section.key ? 'pd-nav-active' : 'pd-nav-idle text-slate-300'">
                         <span class="flex items-center gap-2 min-w-0">
                             <span class="shrink-0 [&>svg]:h-4 [&>svg]:w-4" x-html="section.icon"></span>
                             <span class="truncate" x-text="section.label"></span>
                         </span>
-                        <span class="w-3 h-3 rounded-full bg-red-500 shrink-0" x-show="sectionHasErrors(section.key)" x-cloak></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0" x-show="sectionHasErrors(section.key)" x-cloak></span>
                     </button>
                 </template>
                 <button @click="activeSection = 'surat_tugas'" type="button"
                     class="flex w-full items-center justify-between rounded-lg border border-transparent px-3 py-2 text-left text-sm transition"
-                    :class="activeSection === 'surat_tugas' ? 'border-blue-400/60 bg-blue-600 text-white shadow-sm' : 'hover:border-slate-600 hover:bg-slate-800'">
+                    :class="activeSection === 'surat_tugas' ? 'pd-nav-active' : 'pd-nav-idle text-slate-300'">
                     <span class="flex items-center gap-2 min-w-0">
                         <span class="shrink-0 [&>svg]:h-4 [&>svg]:w-4" x-html="suratTugasIcon"></span>
                         <span class="truncate">Penyimpanan MAK / Surat Tugas</span>
@@ -43,30 +43,30 @@
                 </button>
             </nav>
 
-            <div class="mt-1 min-h-0 flex-1 overflow-y-auto border-t border-slate-700 p-3">
-                <p class="px-3 text-xs uppercase tracking-wide text-slate-500 mb-2">Riwayat</p>
+            <div class="pd-sidebar-history mt-1 min-h-0 flex-1 overflow-y-auto border-t p-3">
+                <p class="pd-sidebar-eyebrow px-3 mb-2">Riwayat</p>
                 <div class="space-y-1">
                     @foreach ($perdins as $p)
-                    <div class="px-3 py-2 text-xs rounded hover:bg-slate-800 cursor-pointer group relative"
+                    <div class="pd-sidebar-history-item px-3 py-2 text-xs rounded cursor-pointer group relative transition"
                         @click="loadPerdin({{ $p->id }})">
                         <div class="font-medium truncate pr-5">{{ \Illuminate\Support\Str::limit($p->maksud_perjalanan ?? '(belum diisi)', 30) }}</div>
-                        <div class="text-slate-500">{{ $p->created_at->format('d M Y H:i') }}</div>
+                        <div class="pd-sidebar-history-date">{{ $p->created_at->format('d M Y H:i') }}</div>
                         <button
                             type="button"
                             @click.stop="deletePerdin({{ $p->id }})"
-                            class="absolute top-2 right-2 text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition"
+                            class="absolute top-2 right-2 text-amber-200/50 hover:text-red-400 opacity-0 group-hover:opacity-100 transition"
                             title="Hapus">✕</button>
                     </div>
                     @endforeach
                 </div>
             </div>
 
-            <div class="border-t border-slate-700 p-3">
+            <div class="pd-sidebar-footer border-t p-3">
                 <div class="flex items-center justify-center gap-2">
-                    <a href="{{ route('template-settings.index') }}" title="Pengaturan Template" aria-label="Pengaturan Template" class="flex h-10 w-10 items-center justify-center rounded-lg text-emerald-400 hover:bg-slate-800 hover:text-emerald-300">
+                    <a href="{{ route('template-settings.index') }}" title="Pengaturan Template" aria-label="Pengaturan Template" class="flex h-10 w-10 items-center justify-center rounded-lg text-amber-300 hover:bg-white/5">
                         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.12 2.12-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.04 1.56V20.3h-3v-.08A1.7 1.7 0 0 0 10.66 18.66a1.7 1.7 0 0 0-1.88.34l-.06.06-2.12-2.12.06-.06A1.7 1.7 0 0 0 7 15a1.7 1.7 0 0 0-1.56-1.04H5.3v-3h.14A1.7 1.7 0 0 0 7 9.92a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.12-2.12.06.06a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 11.7 4.7v-.08h3v.08a1.7 1.7 0 0 0 1.04 1.56 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.12 2.12-.06.06A1.7 1.7 0 0 0 19.4 9.92a1.7 1.7 0 0 0 1.56 1.04h.14v3h-.14A1.7 1.7 0 0 0 19.4 15Z"></path></svg>
                     </a>
-                    <a href="{{ route('perdin.recycle') }}" title="Recycle Bin" aria-label="Recycle Bin" class="flex h-10 w-10 items-center justify-center rounded-lg text-amber-400 hover:bg-slate-800 hover:text-amber-300">
+                    <a href="{{ route('perdin.recycle') }}" title="Recycle Bin" aria-label="Recycle Bin" class="flex h-10 w-10 items-center justify-center rounded-lg text-slate-300 hover:bg-white/5 hover:text-red-300">
                         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v5M14 11v5"></path></svg>
                     </a>
                 </div>
@@ -93,29 +93,29 @@
             </div>
 
             <div class="grid grid-cols-1 gap-6">
-                <section x-show="activeSection === 'surat_tugas'" x-cloak class="space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                <section x-show="activeSection === 'surat_tugas'" x-cloak class="pd-surface space-y-6 p-6">
                     <div>
-                        <h2 class="text-lg font-semibold text-slate-800">Penyimpanan Surat Tugas</h2>
-                        <p class="text-sm text-slate-500">Upload surat tugas terlebih dahulu dan cari kembali berdasarkan nomor atau MAK.</p>
+                        <h2 class="font-serif text-lg font-semibold text-ink">Penyimpanan Surat Tugas</h2>
+                        <p class="text-sm" style="color:#6b6455">Upload surat tugas terlebih dahulu dan cari kembali berdasarkan nomor atau MAK.</p>
                     </div>
                     <form method="POST" action="{{ route('surat-tugas.store') }}" enctype="multipart/form-data" class="grid grid-cols-1 gap-3 md:grid-cols-5">
                         @csrf
-                        <input name="nomor" required placeholder="Nomor surat tugas" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                        <input name="tanggal" type="date" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                        <input name="mak" placeholder="MAK" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                        <input name="file" required type="file" accept=".pdf,.doc,.docx,.xls,.xlsx" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                        <button class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Simpan Surat Tugas</button>
+                        <input name="nomor" required placeholder="Nomor surat tugas" class="pd-input">
+                        <input name="tanggal" type="date" class="pd-input">
+                        <input name="mak" placeholder="MAK" class="pd-input">
+                        <input name="file" required type="file" accept=".pdf,.doc,.docx,.xls,.xlsx" class="pd-input">
+                        <button class="pd-btn pd-btn-primary justify-center">Simpan Surat Tugas</button>
                     </form>
                     <form method="GET" action="{{ route('dashboard') }}" class="flex gap-2">
-                        <input name="q" value="{{ request('q') }}" placeholder="Cari nomor, MAK, atau nama file" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                        <button class="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50">Cari</button>
+                        <input name="q" value="{{ request('q') }}" placeholder="Cari nomor, MAK, atau nama file" class="pd-input">
+                        <button class="pd-btn pd-btn-outline">Cari</button>
                     </form>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-sm">
-                            <thead><tr class="border-b text-xs uppercase text-slate-500"><th class="px-3 py-2">Nomor</th><th class="px-3 py-2">Tanggal</th><th class="px-3 py-2">MAK</th><th class="px-3 py-2">File</th><th></th></tr></thead>
+                            <thead><tr class="border-b" style="border-color:#e7e2d4"><th class="px-3 py-2 pd-label">Nomor</th><th class="px-3 py-2 pd-label">Tanggal</th><th class="px-3 py-2 pd-label">MAK</th><th class="px-3 py-2 pd-label">File</th><th></th></tr></thead>
                             <tbody>
                             @forelse ($suratTugas as $surat)
-                                <tr class="border-b border-slate-100"><td class="px-3 py-2">{{ $surat->nomor }}</td><td class="px-3 py-2">{{ optional($surat->tanggal)->format('d M Y') ?: '-' }}</td><td class="px-3 py-2">{{ $surat->mak ?: '-' }}</td><td class="px-3 py-2"><a class="text-blue-600 hover:underline" href="{{ route('surat-tugas.show', $surat) }}" target="_blank">{{ $surat->file_name }}</a></td><td class="px-3 py-2 text-right"><form method="POST" action="{{ route('surat-tugas.destroy', $surat) }}">@csrf @method('DELETE')<button class="text-red-600 hover:underline">Hapus</button></form></td></tr>
+                                <tr class="border-b" style="border-color:#f1eee5"><td class="px-3 py-2">{{ $surat->nomor }}</td><td class="px-3 py-2">{{ optional($surat->tanggal)->format('d M Y') ?: '-' }}</td><td class="px-3 py-2">{{ $surat->mak ?: '-' }}</td><td class="px-3 py-2"><a class="text-[#0b4f8a] hover:underline" href="{{ route('surat-tugas.show', $surat) }}" target="_blank">{{ $surat->file_name }}</a></td><td class="px-3 py-2 text-right"><form method="POST" action="{{ route('surat-tugas.destroy', $surat) }}">@csrf @method('DELETE')<button class="text-[#a32638] hover:underline">Hapus</button></form></td></tr>
                             @empty
                                 <tr><td colspan="5" class="px-3 py-6 text-center text-slate-400">Belum ada surat tugas tersimpan.</td></tr>
                             @endforelse
@@ -124,33 +124,28 @@
                     </div>
                 </section>
                 {{-- FORM --}}
-                <div x-show="activeSection !== 'surat_tugas'" class="relative overflow-hidden bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <div x-show="activeSection !== 'surat_tugas'" class="pd-surface relative overflow-hidden p-6">
                     <div class="relative z-10">
                         <x-perdin.form />
                     </div>
-                    <div class="relative z-10 mt-6 pt-6 border-t border-slate-200">
+                    <div class="relative z-10 mt-6 pt-6 border-t" style="border-color:#e7e2d4">
                         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                            <div class="text-sm text-slate-500">Tombol aksi tersedia setelah data disimpan.</div>
+                            <div class="text-sm" style="color:#6b6455">Tombol aksi tersedia setelah data disimpan.</div>
                             <div class="flex flex-wrap gap-2">
-                                <button @click="save()" :disabled="saving"
-                                    class="px-4 py-2 rounded-lg bg-slate-700 text-white text-sm hover:bg-slate-800 disabled:opacity-50">
+                                <button @click="save()" :disabled="saving" class="pd-btn pd-btn-primary">
                                     <span x-show="!saving">Simpan</span>
                                     <span x-show="saving">Menyimpan...</span>
                                 </button>
-                                <button @click="nextSection()" type="button"
-                                    class="px-4 py-2 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-sm hover:bg-blue-100">
+                                <button @click="nextSection()" type="button" class="pd-btn pd-btn-outline">
                                     Berikutnya
                                 </button>
-                                <button @click="generateExcel()" :disabled="!perdinId"
-                                    class="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm hover:bg-emerald-700 disabled:opacity-40">
+                                <button @click="generateExcel()" :disabled="!perdinId" class="pd-btn pd-btn-accent">
                                     Generate Excel
                                 </button>
-                                <button @click="generatePdf()" :disabled="!perdinId"
-                                    class="px-4 py-2 rounded-lg bg-red-600 text-white text-sm hover:bg-red-700 disabled:opacity-40">
+                                <button @click="generatePdf()" :disabled="!perdinId" class="pd-btn pd-btn-accent">
                                     Generate PDF
                                 </button>
-                                <button @click="printDocument()" :disabled="!perdinId"
-                                    class="px-4 py-2 rounded-lg bg-slate-500 text-white text-sm hover:bg-slate-600 disabled:opacity-40">
+                                <button @click="printDocument()" :disabled="!perdinId" class="pd-btn pd-btn-ghost">
                                     Print
                                 </button>
                             </div>
@@ -159,7 +154,7 @@
                 </div>
 
                 {{-- PREVIEW --}}
-                <div x-show="activeSection !== 'surat_tugas'" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <div x-show="activeSection !== 'surat_tugas'" class="pd-surface p-6">
                     <x-perdin.preview />
                 </div>
             </div>
@@ -254,6 +249,11 @@
                 },
 
                 showValidation: false,
+
+                // true kalau user pernah ngetik langsung di "Untuk Pembayaran"
+                // (Kwitansi) — begitu true, field itu berhenti auto-ngikut
+                // "Maksud Perjalanan Dinas" sampai form direset/dimuat ulang.
+                untukPembayaranManual: false,
 
                 travelers: [],
                 sbmTariffs: JSON.parse(document.getElementById('sbm-config')?.dataset?.sbm || '[]'),
@@ -624,6 +624,12 @@
                     this.dprItems = data.dpr_items ?? [];
                     this.form.nama_bepergian = data.nama_bepergian || this.travelers[0]?.nama || '';
                     this.form.untuk_pembayaran = data.untuk_pembayaran || data.maksud_perjalanan || '';
+                    // Kalau isi "Untuk Pembayaran" yang tersimpan beda dari
+                    // "Maksud Perjalanan Dinas", berarti dulu pernah diedit
+                    // manual — jangan auto-timpa lagi. Kalau sama persis,
+                    // anggap masih auto-sync (default).
+                    this.untukPembayaranManual = !!data.untuk_pembayaran
+                        && data.untuk_pembayaran !== data.maksud_perjalanan;
                     // Auto-fill DPR dari Nama Pengaju jika DPR belum diisi
                     this.form.dpr_nama = data.dpr_nama || data.nama_pengaju || '';
                     this.form.dpr_nip = data.dpr_nip || data.nip_pengaju || '';

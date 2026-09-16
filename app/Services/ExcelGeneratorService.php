@@ -227,6 +227,11 @@ class ExcelGeneratorService
             $jumlah_satuan = $item->jumlah_satuan ? (int) $item->jumlah_satuan : 0;
             $harga_satuan = $item->harga_satuan ? (float) $item->harga_satuan : 0.0;
             $sheet->setCellValue($columns['jumlah_satuan'] . $row, $jumlah_satuan);
+            // Paksa format cell jadi angka bulat (tanpa desimal), soalnya
+            // style yang ke-duplicate dari style_row kadang bawa format
+            // "0.00" sehingga "1" tampil sebagai "1.00" padahal kolom ini
+            // cuma diisi jumlah hari (bilangan bulat).
+            $sheet->getStyle($columns['jumlah_satuan'] . $row)->getNumberFormat()->setFormatCode('0');
             $sheet->setCellValue($columns['harga_satuan'] . $row, $harga_satuan);
             // Tulis hasil akhir (jumlah_satuan * harga_satuan) sebagai angka,
             // bukan formula, supaya file Excel berisi nilai akhir.
@@ -534,12 +539,23 @@ class ExcelGeneratorService
         }
 
         if ($totalRow && $travelers->count() > 0) {
-            foreach (['uang_harian', 'penginapan', 'represen', 'tiket', 'transportasi', 'sewa_kendaraan', 'jumlah'] as $key) {
-                $col = $columns[$key];
-                $sheet->setCellValue($col . $totalRow, $sums[$key] ?? 0.0);
-            }
+            // Baris total di template (Pertanggungjawaban & PPA) SUDAH punya
+            // formula sendiri: kolom Nama = "Jumlah = "&MAX(...)&" Orang",
+            // dan kolom Uang Harian s/d Jumlah = SUM(...) yang otomatis
+            // ikut menyesuaikan range-nya saat insertNewRowBefore() dipakai
+            // di ensureRowCapacity(). Kalau ditimpa angka statis di sini,
+            // rumusnya hilang dan baris total jadi "beku" (gak lagi ngikut
+            // kalau nanti isinya diedit manual di Excel) — makanya baris
+            // total TIDAK ditulis ulang kecuali template memang tidak
+            // punya formula untuk tabel ini (lihat 'keep_total_formula').
+            if (empty($table['keep_total_formula'])) {
+                foreach (['uang_harian', 'penginapan', 'represen', 'tiket', 'transportasi', 'sewa_kendaraan', 'jumlah'] as $key) {
+                    $col = $columns[$key];
+                    $sheet->setCellValue($col . $totalRow, $sums[$key] ?? 0.0);
+                }
 
-            $sheet->setCellValue($columns['nama'] . $totalRow, 'Jumlah = ' . $travelers->count() . ' Orang');
+                $sheet->setCellValue($columns['nama'] . $totalRow, 'Jumlah = ' . $travelers->count() . ' Orang');
+            }
 
             $sheet->getStyle($columns['no'] . $totalRow . ':' . $this->lastColumn($table) . $totalRow)
                 ->getAlignment()
