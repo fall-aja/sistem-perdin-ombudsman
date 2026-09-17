@@ -215,28 +215,38 @@ class ExcelGeneratorService
 
         $table = $cfg['table'];
         $rows = $perdin->rincianItems;
-        $startRow = $this->ensureRowCapacity($sheet, $table, $rows->count())['start_row'];
+        // Sekarang tiap item makan 2 baris Excel (baris "Uraian" + baris
+        // "Keterangan Tambahan/Jumlah/Harga"), makanya kapasitas yang
+        // diminta ke ensureRowCapacity dikali 2.
+        $startRow = $this->ensureRowCapacity($sheet, $table, $rows->count() * 2)['start_row'];
 
         foreach ($rows as $index => $item) {
-            $row = $startRow + $index;
+            $uraianRow = $startRow + ($index * 2);
+            $detailRow = $uraianRow + 1;
             $columns = $table['columns'];
 
-            $sheet->setCellValue($columns['no'] . $row, $index + 1);
-            $sheet->setCellValue($columns['uraian'] . $row, $item->uraian);
-            $sheet->setCellValue($columns['keterangan_tambahan'] . $row, $item->keterangan_tambahan);
+            // Baris 1: nomor urut + uraian (mis. "Uang Harian").
+            $sheet->setCellValue($columns['no'] . $uraianRow, $index + 1);
+            $sheet->setCellValue($columns['uraian'] . $uraianRow, $item->uraian);
+
+            // Baris 2: keterangan tambahan (mis. "Hari") + jumlah satuan +
+            // harga satuan + total — dulu semua ini nempel di baris yang
+            // sama dengan Uraian, sekarang dipindah 1 baris ke bawah biar
+            // gak numpuk (lihat contoh "Uang Harian" / "1 Hari").
+            $sheet->setCellValue($columns['keterangan_tambahan'] . $detailRow, $item->keterangan_tambahan);
             $jumlah_satuan = $item->jumlah_satuan ? (int) $item->jumlah_satuan : 0;
             $harga_satuan = $item->harga_satuan ? (float) $item->harga_satuan : 0.0;
-            $sheet->setCellValue($columns['jumlah_satuan'] . $row, $jumlah_satuan);
+            $sheet->setCellValue($columns['jumlah_satuan'] . $detailRow, $jumlah_satuan);
             // Paksa format cell jadi angka bulat (tanpa desimal), soalnya
             // style yang ke-duplicate dari style_row kadang bawa format
             // "0.00" sehingga "1" tampil sebagai "1.00" padahal kolom ini
             // cuma diisi jumlah hari (bilangan bulat).
-            $sheet->getStyle($columns['jumlah_satuan'] . $row)->getNumberFormat()->setFormatCode('0');
-            $sheet->setCellValue($columns['harga_satuan'] . $row, $harga_satuan);
+            $sheet->getStyle($columns['jumlah_satuan'] . $detailRow)->getNumberFormat()->setFormatCode('0');
+            $sheet->setCellValue($columns['harga_satuan'] . $detailRow, $harga_satuan);
             // Tulis hasil akhir (jumlah_satuan * harga_satuan) sebagai angka,
             // bukan formula, supaya file Excel berisi nilai akhir.
-            $sheet->setCellValue($columns['jumlah'] . $row, $jumlah_satuan * $harga_satuan);
-            $sheet->setCellValue($columns['keterangan'] . $row, $item->keterangan);
+            $sheet->setCellValue($columns['jumlah'] . $detailRow, $jumlah_satuan * $harga_satuan);
+            $sheet->setCellValue($columns['keterangan'] . $detailRow, $item->keterangan);
         }
     }
 

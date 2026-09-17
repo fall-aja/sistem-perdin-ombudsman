@@ -125,10 +125,10 @@
                 </section>
                 {{-- FORM --}}
                 <div x-show="activeSection !== 'surat_tugas'" class="pd-surface relative overflow-hidden p-6">
-                    <div class="relative z-10">
+                    <div class="relative z-20">
                         <x-perdin.form />
                     </div>
-                    <div class="relative z-10 mt-6 pt-6 border-t" style="border-color:#e7e2d4">
+                    <div class="relative z-20 mt-6 pt-6 border-t" style="border-color:#e7e2d4">
                         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                             <div class="text-sm" style="color:#6b6455">Tombol aksi tersedia setelah data disimpan.</div>
                             <div class="flex flex-wrap gap-2">

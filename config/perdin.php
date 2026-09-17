@@ -224,33 +224,38 @@ return [
     // 5. DPR PERDIN (Daftar Pengeluaran Riil)
     // -----------------------------------------------------------------
     'dpr' => [
-        'sheet' => 'DPR PERDIN',
+    'sheet' => 'DPR PERDIN',
 
-        'fields' => [
-            'nama'             => 'F11',
-            'nip'              => 'F12',
-            'jabatan'          => 'F13',
-            'tanggal_spd_text' => 'B15', // "...tanggal 30 juni 2026"
-            'nomor_spd'        => 'B16',
-            'kota_tanggal_ttd' => 'G45',
-            'nama_ppk'         => 'C52',
-            'nip_ppk'          => 'B53',
-            'nama_bepergian'   => 'G52',
-        ],
+    'fields' => [
+        'nama'             => 'F11',
+        'nip'              => 'F12',
+        'jabatan'          => 'F13',
+        'tanggal_spd_text' => 'B15', // "...tanggal 30 juni 2026"
+        'nomor_spd'        => 'B16',
+        'kota_tanggal_ttd' => 'G45',
+        // Label statis "Nama" (B49) & "NIP" (B50) di template itu
+        // buat blok kiri (PPK) — nilainya harus ditulis SATU BARIS
+        // sejajar labelnya, di kolom C (C49 = nama, C50 = nip), bukan
+        // 3 baris di bawah (C52/B53) seperti sebelumnya. Nilai "Yang
+        // bepergian" juga sejajar di baris yang sama (G49), bukan G52.
+        'nama_ppk'         => 'C49',
+        'nip_ppk'          => 'C50',
+        'nama_bepergian'   => 'G49',
+    ],
 
-        'protected_formula_cells' => ['F35'], // terbilang otomatis
+    'protected_formula_cells' => ['F35'], // terbilang otomatis
 
-        'table' => [
-            'start_row' => 23,
-            'style_row' => 23,
-            'total_row' => 34,
-            'columns' => [
-                'no'     => 'B',
-                'uraian' => 'C',
-                'jumlah' => 'G',
-            ],
+    'table' => [
+        'start_row' => 23,
+        'style_row' => 23,
+        'total_row' => 34,
+        'columns' => [
+            'no'     => 'B',
+            'uraian' => 'C',
+            'jumlah' => 'G',
         ],
     ],
+],
 
     // -----------------------------------------------------------------
     // 6. PERNYATAAN (Surat Pernyataan Tidak Menggunakan Kendaraan Dinas)
