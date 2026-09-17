@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="public/images/ori_square.png" alt="Logo Ombudsman RI" width="140"/>
+<img src="public/images/ori_square.png" alt="Logo Ombudsman RI" width="320"/>
 
-# 🧳 Sistem PERDIN — Ombudsman RI
+#  Sistem PERDIN — Ombudsman RI
 
 ### *Platform Terintegrasi Manajemen Dokumen Perjalanan Dinas*
 
